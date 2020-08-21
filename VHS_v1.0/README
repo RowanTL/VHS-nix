@@ -1,4 +1,6 @@
-Voxelized Homological Simplification Software
+Voxelized Homological Simplification (VHS) Software
+
+**This is the first version of the software which was presented in _Some Heuristics for the Homological Simplification Problem_ for CCCG18: <http://www.cs.umanitoba.ca/\%7Ecccg2018/papers/session7B-p1.pdf>.**
 
 
 Simplify:
