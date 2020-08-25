@@ -65,6 +65,7 @@ generateSubstractibleComponents(int maxSize)
             auto compIt = component.begin();
             while (compIt != component.end() && !Base::_shape.template contains<CORE>(*compIt)) {
                 candidate.insert(*compIt);
+                compIt++;
             }
             if (compIt == component.end()) Base::_candidates.push_back(candidate);
         }

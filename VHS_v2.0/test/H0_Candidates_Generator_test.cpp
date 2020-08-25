@@ -153,19 +153,12 @@ void verifyH0GetSubstractibleComponents(std::string name){
     const typename SubstractiveH0CandidateGenerator<Shape, Voxel>::candidate_container
             &components = gen.generateSubstractibleComponents(10);
 
-    ASSERT_EQ(1, components.size()) << name;
-    ASSERT_EQ(1, components.begin()->size()) << name;
+    ASSERT_EQ(0, components.size()) << name;
 
     const typename SubstractiveH0CandidateGenerator<Shape, Voxel>::candidate_container
-            &components2 = gen.generateSubstractibleComponents(20);
+            &components2 = gen.generateSubstractibleComponents(-1);
 
-    ASSERT_EQ(2, components2.size()) << name;
-    auto it = components2.begin();
-    unsigned long s = it->size();
-    ASSERT_TRUE(s == 1 || s == 15) << name;
-    ++it;
-    ASSERT_TRUE(it->size() == 1 || it->size() == 15) << name;
-    ASSERT_NE(s, it->size());
+    ASSERT_EQ(0, components2.size()) << name;
 }
 
 
