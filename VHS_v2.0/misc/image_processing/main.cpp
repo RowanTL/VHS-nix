@@ -47,7 +47,7 @@ void displayUsage()
 {
     std::cout << "Usage:\n";
     std::cout << "\n";
-    std::cout << "  ./imgproc down noise nberim inf_dp/in_fp out_dp[/out_fp] [trans]\n";
+    std::cout << "  ./imgproc down noise nberim inf_dp/in_fp out_dp/[out_fp] [trans]\n";
     std::cout << "\n";
     std::cout << "Adding the argument --silent avoid outputs in the terminal.\n";
     std::cout << "\n";
@@ -62,7 +62,7 @@ void displayUsage()
     std::cout << "* in_dp: directory path where the input images are stored.\n";
     std::cout << "* out_fp: name prefix for the output images.\n";
     std::cout << "* out_dp: directory path where the output images should be stored.\n";
-    std::cout << "* trans: translates the grayscale level value by the given amount.\n";
+    std::cout << "* trans: translates the grayscale level values by the given amount.\n";
     std::cout << "\nfor more details, see Readme file\n";
     std::cout << "\n";
 }

@@ -46,11 +46,11 @@ void displayUsage()
     std::cout << "\n";
     std::cout << "Usage:\n";
     std::cout << "\nType of simplification (obligatory, choose only one):\n";
-    std::cout << " -s nberim inf_dp/in_fp out_dp[/out_fp]\t#Standard simplifier\n";
-    std::cout << " -f nberim inf_dp/in_fp out_dp[/out_fp]\t#Standard simplifier with "
+    std::cout << " -s nberim inf_dp/in_fp out_dp/[out_fp]\t#Standard simplifier\n";
+    std::cout << " -f nberim inf_dp/in_fp out_dp/[out_fp]\t#Standard simplifier with "
                  "removals first\n";
-    std::cout << " -a nberim inf_dp/in_fp out_dp[/out_fp]\t#Additions only\n";
-    std::cout << " -r nberim inf_dp/in_fp out_dp[/out_fp]\t#Removals only\n";
+    std::cout << " -a nberim inf_dp/in_fp out_dp/[out_fp]\t#Additions only\n";
+    std::cout << " -r nberim inf_dp/in_fp out_dp/[out_fp]\t#Removals only\n";
     std::cout << "\nShape related options:\n";
     std::cout << " -tc value\t#Grayscale threshold value for the core.\n"
                  "\t\t Default value: 200.\n";
