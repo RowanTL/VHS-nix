@@ -128,16 +128,17 @@ public:
     void saveImage(ImageData &data);
 
 
-    void simplify(unsigned int boxWidth, int ccSize = -1);
-    void simplifyWithSubFirst(unsigned int boxWidth, int ccSize = -1);
-    void simplifyOnlyAdditively(unsigned int boxWidth);
-    void simplifyOnlySubstractively(unsigned int boxWidth, int ccSize = -1);
+    void simplify(unsigned int boxWidth, int ccSize = -1, bool noover = false);
+    void simplifyWithSubFirst(unsigned int boxWidth, int ccSize = -1, bool noover = false);
+    void simplifyOnlyAdditively(unsigned int boxWidth, bool noover = false);
+    void simplifyOnlySubstractively(unsigned int boxWidth, int ccSize = -1, bool noover = false);
 
     void printShapeData();
 
 private:
     AugShape _shape;
     unsigned int _boxWidth;
+    bool _noover;
     Point _maxCoordinate;
     unsigned int _minNumberOfComponents;
     unsigned int _minNumberOfLoops;

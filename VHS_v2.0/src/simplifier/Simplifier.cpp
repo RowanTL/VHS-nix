@@ -123,11 +123,15 @@ void Simplifier::saveImage(ImageData &data){
     _printTime("Image writing time:");
 }
 
-void Simplifier::simplify(unsigned int boxWidth, int ccSize){
+void Simplifier::simplify(unsigned int boxWidth,
+                          int ccSize,
+                          bool noover)
+{
     static_assert(AugShape::isAddable(), "Addition of voxels not enabled.");
     static_assert(AugShape::isRemovable(), "Removal of voxels not enabled.");
 
     _boxWidth = boxWidth;
+    _noover = noover;
 
     _printParameterData(ccSize, "Standard Simplification");
 
@@ -194,11 +198,14 @@ void Simplifier::simplify(unsigned int boxWidth, int ccSize){
 
 
 void Simplifier::simplifyWithSubFirst(unsigned int boxWidth,
-                                      int ccSize){
+                                      int ccSize,
+                                      bool noover)
+{
     static_assert(AugShape::isAddable(), "Addition of voxels not enabled.");
     static_assert(AugShape::isRemovable(), "Removal of voxels not enabled.");
 
     _boxWidth = boxWidth;
+    _noover = noover;
 
     _printParameterData(ccSize, "Standard Simplification");
 
@@ -263,10 +270,11 @@ void Simplifier::simplifyWithSubFirst(unsigned int boxWidth,
     _printTime("Persistence time:");
 }
 
-void Simplifier::simplifyOnlyAdditively(unsigned int boxWidth){
+void Simplifier::simplifyOnlyAdditively(unsigned int boxWidth, bool noover){
     static_assert(AugShape::isAddable(), "Addition of voxels not enabled.");
 
     _boxWidth = boxWidth;
+    _noover = noover;
 
     _printParameterData("Additions Only Simplification");
 
@@ -311,10 +319,14 @@ void Simplifier::simplifyOnlyAdditively(unsigned int boxWidth){
     _printTime("Persistence time:");
 }
 
-void Simplifier::simplifyOnlySubstractively(unsigned int boxWidth, int ccSize){
+void Simplifier::simplifyOnlySubstractively(unsigned int boxWidth,
+                                            int ccSize,
+                                            bool noover)
+{
     static_assert(AugShape::isRemovable(), "Removal of voxels not enabled.");
 
     _boxWidth = boxWidth;
+    _noover = noover;
 
     _printParameterData(ccSize, "Substractions Only Simplification");
 
@@ -463,10 +475,11 @@ bool Simplifier::_simplifyH2WithSubstractions(
         CandidateValidator<AugShape,Voxel>& val,
         lower_point_container& lowerPoints)
 {
+    _printMessage("__negative H2");
+
     if (_shape.getNumberOfVoids() <= _minNumberOfVoids)
         return false;
 
-    _printMessage("__negative H2");
     bool changed = _applySubstractiveSimplification(
                 val.verifySubstractiveCandidatesValidity(
                     gen.template generatePeristenceCandidates<InvRestrShape>(
@@ -596,7 +609,9 @@ bool Simplifier::_applySubstractiveSimplification(
 
 void Simplifier::_computeInitialLowerPoints(lower_point_container& lowerPoints){
     Point lower;
-    int shift = _boxWidth / 2;
+    int shift;
+    if (_noover) shift = _boxWidth;
+    else shift = _boxWidth / 2;
 
     for (lower[0] = 0; lower[0] <= _maxCoordinate[0]; lower[0] += shift) {
         for (lower[1] = 0; lower[1] <= _maxCoordinate[1]; lower[1] += shift) {
@@ -608,25 +623,30 @@ void Simplifier::_computeInitialLowerPoints(lower_point_container& lowerPoints){
 }
 
 void Simplifier::_getCorrespondingLowerPoints(Voxel v, lower_point_container& points){
-    int shift = _boxWidth / 2;
+    int shift;
+    if (_noover) shift = _boxWidth;
+    else shift = _boxWidth / 2;
+
     int x = std::floor(static_cast<double>(v[0]) / static_cast<double>(shift)) * shift;
     int y = std::floor(static_cast<double>(v[1]) / static_cast<double>(shift)) * shift;
     int z = std::floor(static_cast<double>(v[2]) / static_cast<double>(shift)) * shift;
     points.insert(Point({x, y, z}));
 
-    if (x - shift >= 0){
-        points.insert(Point({x - shift, y, z}));
-        if (y - shift >= 0){
-            points.insert(Point({x - shift, y - shift, z}));
-            if (z - shift >= 0) points.insert(Point({x - shift, y - shift, z - shift}));
+    if (!_noover){
+        if (x - shift >= 0){
+            points.insert(Point({x - shift, y, z}));
+            if (y - shift >= 0){
+                points.insert(Point({x - shift, y - shift, z}));
+                if (z - shift >= 0) points.insert(Point({x - shift, y - shift, z - shift}));
+            }
+            if (z - shift >= 0) points.insert(Point({x - shift, y, z - shift}));
         }
-        if (z - shift >= 0) points.insert(Point({x - shift, y, z - shift}));
+        if (y - shift >= 0){
+            points.insert(Point({x, y - shift, z}));
+            if (z - shift >= 0) points.insert(Point({x, y - shift, z - shift}));
+        }
+        if (z - shift >= 0) points.insert(Point({x, y, z - shift}));
     }
-    if (y - shift >= 0){
-        points.insert(Point({x, y - shift, z}));
-        if (z - shift >= 0) points.insert(Point({x, y - shift, z - shift}));
-    }
-    if (z - shift >= 0) points.insert(Point({x, y, z - shift}));
 }
 
 void Simplifier::_resetTimer(){
@@ -663,7 +683,8 @@ void Simplifier::_printParameterData(std::string message){
     std::cout << "-- " << message << " --\n";
     std::cout << "\n";
     std::cout << "Box Width: " << _boxWidth << "\n";
-    std::cout << "Shift value: " << (_boxWidth / 2) << "\n";
+    if (_noover) std::cout << "Shift value: " << _boxWidth << "\n";
+    else std::cout << "Shift value: " << (_boxWidth / 2) << "\n";
     std::cout << "\n";
     std::cout << "-------------------------------------------\n";
     std::cout << "\n";
@@ -676,7 +697,8 @@ void Simplifier::_printParameterData(int ccSize, std::string message){
     std::cout << "-- " << message << " --\n";
     std::cout << "\n";
     std::cout << "Box Width: " << _boxWidth << "\n";
-    std::cout << "Shift value: " << (_boxWidth / 2) << "\n";
+    if (_noover) std::cout << "Shift value: " << _boxWidth << "\n";
+    else std::cout << "Shift value: " << (_boxWidth / 2) << "\n";
     if (ccSize >= 0)
         std::cout << "Maximum size for removed components: " << ccSize << "\n";
     else

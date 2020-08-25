@@ -67,13 +67,14 @@ void displayUsage()
     std::cout << "\nSimplification related options:\n";
     std::cout << " -w value\t#Width to be used for the boxes.\n"
                  "\t\t Default value: 100.\n";
+    std::cout << " --noover\t#Non-overlapping boxes.\n";
     std::cout << " -cc value\t#Maximal size of a component to be completely removed.\n"
                  "\t\t Give a negative value if no limit is wanted.\n"
                  "\t\t Default value: -1.\n";
     std::cout << " -pc value\t#Maximum % of noise to remove (Value between 0 and 100).\n"
                  "\t\t Default value: 100.\n";
     std::cout << "\nAdditional options:\n";
-    std::cout << " --silent: avoids output in the terminal.\n";
+    std::cout << " --silent\t#Avoids output in the terminal.\n";
     std::cout << "\nFor more details, see the Readme file.\n";
     std::cout << "\n";
 }
@@ -92,12 +93,18 @@ int main(int argc, char **argv) {
     simplification_type simp = S;
     unsigned int boxWidth = 100;
     int ccSize = -1;
+    bool noover = false;
 
     int i = 1;
     while (i < argc) {
         if (strcmp(argv[i], "--silent") == 0)
         {
             _silent = true;
+            i++;
+        }
+        else if (strcmp(argv[i], "--noover") == 0)
+        {
+            noover = true;
             i++;
         }
         else if (strcmp(argv[i], "-s") == 0)
@@ -246,19 +253,19 @@ int main(int argc, char **argv) {
 
     if (simp == S) {
         time = clock();
-        simplifier.simplify(boxWidth, ccSize);
+        simplifier.simplify(boxWidth, ccSize, noover);
         printTime(time, "Process time: ");
     } else if (simp == F) {
         time = clock();
-        simplifier.simplifyWithSubFirst(boxWidth, ccSize);
+        simplifier.simplifyWithSubFirst(boxWidth, ccSize, noover);
         printTime(time, "Process time: ");
     } else if (simp == A) {
         time = clock();
-        simplifier.simplifyOnlyAdditively(boxWidth);
+        simplifier.simplifyOnlyAdditively(boxWidth, noover);
         printTime(time, "Process time: ");
     } else if (simp == R) {
         time = clock();
-        simplifier.simplifyOnlySubstractively(boxWidth, ccSize);
+        simplifier.simplifyOnlySubstractively(boxWidth, ccSize, noover);
         printTime(time, "Process time: ");
     }
 
