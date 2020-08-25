@@ -28,13 +28,7 @@ Simplifier::Simplifier(bool silence) : _silent(silence)
 Simplifier::~Simplifier()
 {}
 
-void Simplifier::loadPreprocessedImage(
-        std::string inputFileNameBase,
-        unsigned int numberOfImages,
-        unsigned int minNumberOfComponents,
-        unsigned int minNumberOfLoops,
-        unsigned int minNumberOfVoids,
-        double minRatio)
+void Simplifier::loadPreprocessedImage(ImageData &data)
 {
     ProcessedImageStack proc;
     _shape.clear();
@@ -42,7 +36,10 @@ void Simplifier::loadPreprocessedImage(
 
     _printMessage("--Load image.");
 
-    proc.load(inputFileNameBase, numberOfImages);
+    proc.load(data.inputFileNameBase, data.numberOfImages);
+    proc.setCoreThreshold(data.coreThreshold);
+    proc.setShapeThreshold(data.shapeThreshold);
+    proc.setNeighborhoodThreshold(data.neighborhoodThreshold);
 
     _printAndResetTime("Image load time:");
     _printMessage("--Load shape.");
@@ -57,40 +54,35 @@ void Simplifier::loadPreprocessedImage(
     _maxCoordinate[2] = static_cast<int>(dim[2]);
 
     _minNumberOfComponents = std::floor(
-                (minNumberOfComponents * minRatio +
-                 _shape.getNumberOfComponents() * (100.0 - minRatio))
+                (data.minNumberOfComponents * data.minRatio +
+                 _shape.getNumberOfComponents() * (100.0 - data.minRatio))
                 / 100.0
                 );
     _minNumberOfLoops = std::floor(
-                (minNumberOfLoops * minRatio +
-                 _shape.getNumberOfLoops() * (100.0 - minRatio))
+                (data.minNumberOfLoops * data.minRatio +
+                 _shape.getNumberOfLoops() * (100.0 - data.minRatio))
                 / 100.0
                 );
     _minNumberOfVoids = std::floor(
-                (minNumberOfVoids * minRatio +
-                 _shape.getNumberOfVoids() * (100.0 - minRatio))
+                (data.minNumberOfVoids * data.minRatio +
+                 _shape.getNumberOfVoids() * (100.0 - data.minRatio))
                 / 100.0
                 );
-    _optNumberOfVoids = minNumberOfVoids;
+    _optNumberOfVoids = data.minNumberOfVoids;
 }
 
-void Simplifier::loadRawImage(
-        std::string inputFileNameBase,
-        unsigned int numberOfImages,
-        unsigned int downsampling,
-        unsigned int noise,
-        unsigned int minNumberOfComponents,
-        unsigned int minNumberOfLoops,
-        unsigned int minNumberOfVoids,
-        double minRatio)
+void Simplifier::loadRawImage(ImageData &data)
 {
-    RawImageStack raw(downsampling, noise);
+    RawImageStack raw(data.downsampling, data.noise);
     _shape.clear();
     _resetTimer();
 
     _printMessage("--Load image.");
 
-    raw.load(inputFileNameBase, numberOfImages);
+    raw.load(data.inputFileNameBase, data.numberOfImages);
+    raw.setCoreThreshold(data.coreThreshold);
+    raw.setShapeThreshold(data.shapeThreshold);
+    raw.setNeighborhoodThreshold(data.neighborhoodThreshold);
 
     _printAndResetTime("Image load time:");
     _printMessage("--Load shape.");
@@ -105,28 +97,28 @@ void Simplifier::loadRawImage(
     _maxCoordinate[2] = static_cast<int>(dim[2]);
 
     _minNumberOfComponents = std::floor(
-                (minNumberOfComponents * minRatio +
-                 _shape.getNumberOfComponents() * (100.0 - minRatio))
+                (data.minNumberOfComponents * data.minRatio +
+                 _shape.getNumberOfComponents() * (100.0 - data.minRatio))
                 / 100.0
                 );
     _minNumberOfLoops = std::floor(
-                (minNumberOfLoops * minRatio +
-                 _shape.getNumberOfLoops() * (100.0 - minRatio))
+                (data.minNumberOfLoops * data.minRatio +
+                 _shape.getNumberOfLoops() * (100.0 - data.minRatio))
                 / 100.0
                 );
     _minNumberOfVoids = std::floor(
-                (minNumberOfVoids * minRatio +
-                 _shape.getNumberOfVoids() * (100.0 - minRatio))
+                (data.minNumberOfVoids * data.minRatio +
+                 _shape.getNumberOfVoids() * (100.0 - data.minRatio))
                 / 100.0
                 );
-    _optNumberOfVoids = minNumberOfVoids;
+    _optNumberOfVoids = data.minNumberOfVoids;
 }
 
-void Simplifier::saveImage(std::string outputFileNameBase){
+void Simplifier::saveImage(ImageData &data){
     _printMessage("--Write image.");
     _resetTimer();
 
-    outputFileNameBase << _shape;
+    data.outputFileNameBase << _shape;
 
     _printTime("Image writing time:");
 }

@@ -34,156 +34,236 @@ void printTime(clock_t &time, std::string message);
 
 void displayUsage()
 {
+    std::cout << "\n";
     std::cout << "Lexis:\n";
-    std::cout << "* width: width to be used for the boxes decomposing the stacked image.\n";
-    std::cout << "* maxcc: maximal size of a component to be completely removed.\n"
-                 "  Give a negative value if no limit is wanted.\n";
-    std::cout << "* nberim: number of images to load in the stacked image.\n";
-    std::cout << "* in_fp: name prefix of the input images, if existing. \n"
+    std::cout << "> nberim: number of images to load in the stacked image.\n";
+    std::cout << "> in_fp: name prefix of the input images, if existing. \n"
                  "  E.g. \"flower_\" if the files are named \"flower_xxxx.png\", \n"
                  "  where xxxx has to be the numbering of the images with 4 digits.\n";
-    std::cout << "* in_dp: directory path where the input images are stored.\n";
-    std::cout << "* out_fp: name prefix for the output images.\n";
-    std::cout << "* out_dp: directory path where the output images should be stored.\n";
-    std::cout << "* min_cc: Lowest number of components possible. Default value: 1.\n";
-    std::cout << "* min_l: Lowest number of loops possible. Default value: 0.\n";
-    std::cout << "* min_v: Lowest number of voids possible. Default value: 0.\n";
-    std::cout << "* ratio: Maximum % of noise to remove (Value between 0 and 100). "
-                 "Default value: 100.\n";
+    std::cout << "> in_dp: directory path where the input images are stored.\n";
+    std::cout << "> out_fp: name prefix for the output images.\n";
+    std::cout << "> out_dp: directory path where the output images should be stored.\n";
     std::cout << "\n";
     std::cout << "Usage:\n";
-    std::cout << " -s \twidth maxcc nberim inf_dp/in_fp out_dp[/out_fp] "
-                 "[min_cc min_l min_v [ratio]]\t "
-                 "#Standard simplifier\n";
-    std::cout << " -swg \twidth maxcc nberim inf_dp/in_fp out_dp[/out_fp] "
-                 "[min_cc min_l min_v [ratio]]\t "
-                 "#Standard simplifier with guarantee\n";
-    std::cout << " -f \twidth maxcc nberim inf_dp/in_fp out_dp[/out_fp] "
-                 "[min_cc min_l min_v [ratio]]\t "
-                 "#Standard simplifier with Substraction first\n";
-    std::cout << " -o \twidth maxcc nberim inf_dp/in_fp out_dp[/out_fp] "
-                 "[min_cc min_l min_v [ratio]]\t "
-                 "#With candidates ordered by increasing length\n";
-    std::cout << " -a \twidth nberim inf_dp/in_fp out_dp[/out_fp] "
-                 "[min_cc min_l min_v [ratio]]\t\t "
-                 "#Additions only\n";
-    std::cout << " -awg \twidth nberim inf_dp/in_fp out_dp[/out_fp] "
-                 "[min_cc min_l min_v [ratio]]\t\t "
-                 "#Additions only with guarantee\n";
-    std::cout << " -r \twidth maxcc nberim inf_dp/in_fp out_dp[/out_fp] "
-                 "[min_cc min_l min_v [ratio]]\t "
-                 "#Removals only\n";
-    std::cout << " -rwg \twidth maxcc nberim inf_dp/in_fp out_dp[/out_fp] "
-                 "[min_cc min_l min_v [ratio]]\t "
-                 "#Removals only with guarantee\n";
-    std::cout << "\n";
-    std::cout << "Additional options:\n";
-    std::cout << "  --silent: avoids output in the terminal.\n";
-    std::cout << "\nFor more details, see Readme file.\n";
+    std::cout << "\nType of simplification (obligatory, choose only one):\n";
+    std::cout << " -s nberim inf_dp/in_fp out_dp[/out_fp]\t#Standard simplifier\n";
+    std::cout << " -f nberim inf_dp/in_fp out_dp[/out_fp]\t#Standard simplifier with "
+                 "removals first\n";
+    std::cout << " -a nberim inf_dp/in_fp out_dp[/out_fp]\t#Additions only\n";
+    std::cout << " -r nberim inf_dp/in_fp out_dp[/out_fp]\t#Removals only\n";
+    std::cout << "\nShape related options:\n";
+    std::cout << " -tc value\t#Grayscale threshold value for the core.\n"
+                 "\t\t Default value: 200.\n";
+    std::cout << " -ts value\t#Grayscale threshold value for the shape.\n"
+                 "\t\t Default value: 150.\n";
+    std::cout << " -tn value\t#Grayscale threshold value for the neighborhood.\n"
+                 "\t\t Default value: 100.\n";
+    std::cout << " -opt0 value\t#Lowest number of connected components possible.\n"
+                 "\t\t Default value: 1.\n";
+    std::cout << " -opt1 value\t#Lowest number of loops possible.\n"
+                 "\t\t Default value: 0.\n";
+    std::cout << " -opt2 value\t#Lowest number of voids possible.\n"
+                 "\t\t Default value: 0.\n";
+    std::cout << "\nSimplification related options:\n";
+    std::cout << " -w value\t#Width to be used for the boxes.\n"
+                 "\t\t Default value: 100.\n";
+    std::cout << " -cc value\t#Maximal size of a component to be completely removed.\n"
+                 "\t\t Give a negative value if no limit is wanted.\n"
+                 "\t\t Default value: -1.\n";
+    std::cout << " -pc value\t#Maximum % of noise to remove (Value between 0 and 100).\n"
+                 "\t\t Default value: 100.\n";
+    std::cout << "\nAdditional options:\n";
+    std::cout << " --silent: avoids output in the terminal.\n";
+    std::cout << "\nFor more details, see the Readme file.\n";
     std::cout << "\n";
 }
 
 int main(int argc, char **argv) {
-    if (argc < 6 || argc > 13){
+    if (argc < 5 || argc > 23){
         displayUsage();
         return 0;
     }
 
-    std::vector<char*> args;
-    for (int i = 1; i < argc; i++){
-        if (strcmp(argv[i], "--silent") == 0) _silent = true;
-        else args.push_back(argv[i]);
+    enum simplification_type{
+        S, F, A, R
+    };
+
+    Simplifier::ImageData data;
+    simplification_type simp = S;
+    unsigned int boxWidth = 100;
+    int ccSize = -1;
+
+    int i = 1;
+    while (i < argc) {
+        if (strcmp(argv[i], "--silent") == 0)
+        {
+            _silent = true;
+            i++;
+        }
+        else if (strcmp(argv[i], "-s") == 0)
+        {
+            if (i + 3 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            simp = S;
+            data.numberOfImages = atoi(argv[i+1]);
+            data.inputFileNameBase = argv[i+2];
+            data.outputFileNameBase = argv[i+3];
+            i += 4;
+        }
+        else if (strcmp(argv[i], "-f") == 0)
+        {
+            if (i + 3 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            simp = F;
+            data.numberOfImages = atoi(argv[i+1]);
+            data.inputFileNameBase = argv[i+2];
+            data.outputFileNameBase = argv[i+3];
+            i += 4;
+        }
+        else if (strcmp(argv[i], "-a") == 0)
+        {
+            if (i + 3 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            simp = A;
+            data.numberOfImages = atoi(argv[i+1]);
+            data.inputFileNameBase = argv[i+2];
+            data.outputFileNameBase = argv[i+3];
+            i += 4;
+        }
+        else if (strcmp(argv[i], "-r") == 0)
+        {
+            if (i + 3 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            simp = R;
+            data.numberOfImages = atoi(argv[i+1]);
+            data.inputFileNameBase = argv[i+2];
+            data.outputFileNameBase = argv[i+3];
+            i += 4;
+        }
+        else if (strcmp(argv[i], "-tc") == 0)
+        {
+            if (i + 1 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            data.coreThreshold = atoi(argv[i+1]);
+            i += 2;
+        }
+        else if (strcmp(argv[i], "-ts") == 0)
+        {
+            if (i + 1 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            data.shapeThreshold = atoi(argv[i+1]);
+            i += 2;
+        }
+        else if (strcmp(argv[i], "-tn") == 0)
+        {
+            if (i + 1 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            data.neighborhoodThreshold = atoi(argv[i+1]);
+            i += 2;
+        }
+        else if (strcmp(argv[i], "-opt0") == 0)
+        {
+            if (i + 1 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            data.minNumberOfComponents = atoi(argv[i+1]);
+            i += 2;
+        }
+        else if (strcmp(argv[i], "-opt1") == 0)
+        {
+            if (i + 1 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            data.minNumberOfLoops = atoi(argv[i+1]);
+            i += 2;
+        }
+        else if (strcmp(argv[i], "-opt2") == 0)
+        {
+            if (i + 1 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            data.minNumberOfVoids = atoi(argv[i+1]);
+            i += 2;
+        }
+        else if (strcmp(argv[i], "-w") == 0)
+        {
+            if (i + 1 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            boxWidth = atoi(argv[i+1]);
+            i += 2;
+        }
+        else if (strcmp(argv[i], "-cc") == 0)
+        {
+            if (i + 1 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            ccSize = atoi(argv[i+1]);
+            i += 2;
+        }
+        else if (strcmp(argv[i], "-pc") == 0)
+        {
+            if (i + 1 >= argc) {
+                displayUsage();
+                return 0;
+            }
+            data.minRatio = atoi(argv[i+1]);
+            i += 2;
+        }
+        else
+        {
+            displayUsage();
+            return 0;
+        }
     }
 
     Simplifier simplifier(_silent);
-    unsigned int boxWidth;
-    int ccSize;
-    unsigned int numberOfImages;
-    std::string inputFileNameBase;
-    std::string outputFileNameBase;
-    unsigned int minNumberOfComponents = 1;
-    unsigned int minNumberOfLoops = 0;
-    unsigned int minNumberOfVoids = 0;
-    double minRatio = 100.0;
 
-    if (args.size() > 6){
-        if (args.size() > 10 && args.size() < 8){
-            displayUsage();
-            return 0;
-        }
+    clock_t totalTime = clock();
+    clock_t time = clock();
 
-        if (args.size() == 10 ||
-                (args.size() == 9 && strcmp(args.at(0), "-a") == 0) ||
-                (args.size() == 9 && strcmp(args.at(0), "-awg") == 0)){
-            minRatio = atoi(args.back());
-            args.pop_back();
-        }
-
-        minNumberOfVoids = atoi(args.back());
-        args.pop_back();
-        minNumberOfLoops = atoi(args.back());
-        args.pop_back();
-        minNumberOfComponents = atoi(args.back());
-        args.pop_back();
-    }
-
-    clock_t totalTime;
-    clock_t time;
-
-    if (strcmp(args.at(0), "-a") == 0 || strcmp(args.at(0), "-awg") == 0){
-        if (args.size() != 5){
-            displayUsage();
-            return 0;
-        }
-        boxWidth = atoi(args.at(1));
-        numberOfImages = atoi(args.at(2));
-        inputFileNameBase = args.at(3);
-        outputFileNameBase = args.at(4);
-    } else {
-        if (args.size() != 6){
-            displayUsage();
-            return 0;
-        }
-        boxWidth = atoi(args.at(1));
-        ccSize = atoi(args.at(2));
-        numberOfImages = atoi(args.at(3));
-        inputFileNameBase = args.at(4);
-        outputFileNameBase = args.at(5);
-    }
-
-    totalTime = clock();
-    time = clock();
-    simplifier.loadPreprocessedImage(inputFileNameBase,
-                                     numberOfImages,
-                                     minNumberOfComponents,
-                                     minNumberOfLoops,
-                                     minNumberOfVoids,
-                                     minRatio);
+    simplifier.loadPreprocessedImage(data);
     printTime(time, "Image load time: ");
 
-    if (strcmp(args.at(0), "-s") == 0) {
+    if (simp == S) {
         time = clock();
         simplifier.simplify(boxWidth, ccSize);
         printTime(time, "Process time: ");
-    } else if (strcmp(args.at(0), "-f") == 0) {
+    } else if (simp == F) {
         time = clock();
         simplifier.simplifyWithSubFirst(boxWidth, ccSize);
         printTime(time, "Process time: ");
-    } else if (strcmp(args.at(0), "-a") == 0) {
+    } else if (simp == A) {
         time = clock();
         simplifier.simplifyOnlyAdditively(boxWidth);
         printTime(time, "Process time: ");
-    } else if (strcmp(args.at(0), "-r") == 0) {
+    } else if (simp == R) {
         time = clock();
         simplifier.simplifyOnlySubstractively(boxWidth, ccSize);
         printTime(time, "Process time: ");
-    } else {
-        displayUsage();
-        return 0;
     }
 
     time = clock();
-    simplifier.saveImage(outputFileNameBase);
+    simplifier.saveImage(data);
     printTime(time, "Simplification save time: ");
 
     printTime(totalTime, "Total elapsed time: ");

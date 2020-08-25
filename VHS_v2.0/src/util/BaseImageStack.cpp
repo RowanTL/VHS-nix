@@ -27,7 +27,12 @@
 
 namespace shape_simplification::util {
 
-BaseImageStack::BaseImageStack() : _dim({0, 0, 0}) {}
+BaseImageStack::BaseImageStack() :
+    _dim({0, 0, 0}),
+    _coreThreshold(200),
+    _shapeThreshold(150),
+    _neighborhoodThreshold(100)
+{}
 
 BaseImageStack::~BaseImageStack() {}
 
@@ -72,6 +77,36 @@ void BaseImageStack::setDimensions(unsigned int x,
     _dim[0] = x;
     _dim[1] = y;
     _dim[2] = z;
+}
+
+unsigned char BaseImageStack::getNeighborhoodThreshold() const
+{
+    return _neighborhoodThreshold;
+}
+
+void BaseImageStack::setNeighborhoodThreshold(unsigned char value)
+{
+    _neighborhoodThreshold = value;
+}
+
+unsigned char BaseImageStack::getShapeThreshold() const
+{
+    return _shapeThreshold;
+}
+
+void BaseImageStack::setShapeThreshold(unsigned char value)
+{
+    _shapeThreshold = value;
+}
+
+unsigned char BaseImageStack::getCoreThreshold() const
+{
+    return _coreThreshold;
+}
+
+void BaseImageStack::setCoreThreshold(unsigned char value)
+{
+    _coreThreshold = value;
 }
 
 void BaseImageStack::clear()

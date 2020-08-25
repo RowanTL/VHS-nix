@@ -53,11 +53,11 @@ void operator>>(BaseImageStack &inputImages, Shape &shape) {
         for (unsigned int y = 0; y < dimensions[1]; y++) {
             for (unsigned int x = 0; x < dimensions[0]; x++) {
                 unsigned char level = inputImages.getLevel(x, y, z);
-                if (level >= 200) {
+                if (level >= inputImages.getCoreThreshold()) {
                     shape.template addVoxel<Shape::CORE>(Voxel(x, y, z));
-                } else if (level >= 150) {
+                } else if (level >= inputImages.getShapeThreshold()) {
                     shape.template addVoxel<Shape::MAIN_SHAPE>(Voxel(x, y, z));
-                } else if (level >= 100) {
+                } else if (level >= inputImages.getNeighborhoodThreshold()) {
                     shape.template addVoxel<Shape::NEIGHBORHOOD>(Voxel(x, y, z));
                 }
             }
@@ -68,6 +68,8 @@ void operator>>(BaseImageStack &inputImages, Shape &shape) {
 template <class Shape>
 /**
  * @brief Saves a shape as a set of PNG images.
+ * The core, the main shape and the neighborhood are associated to
+ * grayscale value 200, 150 and 100 respectively.
  * @param baseFilename Directory the images should be saved in.
  * @param shape Shape to save.
  */

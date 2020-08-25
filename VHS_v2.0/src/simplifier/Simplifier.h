@@ -81,6 +81,39 @@ public:
 
     using lower_point_container = std::unordered_set<Point>;
 
+    struct ImageData{
+        /**
+         * @brief Input base name for input images.
+         * That is, the part of the absolute or relative file paths
+         * before "xxxx.png", where 'xxxx' has to be the numbering
+         * of the images with 4 digits.
+         * E.g. 'directory/path/flower_' if the files are named
+         * 'directory/path/flower_xxxx.png'.
+         * See README for more details.
+         */
+        std::string inputFileNameBase;
+        /**
+         * @brief Output base name for output images.
+         * That is, the part of the absolute or relative file paths
+         * before "xxxx.png", where 'xxxx' will be the numbering
+         * of the images with 4 digits.
+         * E.g. 'directory/path/flower_' if the files should be named
+         * 'directory/path/flower_xxxx.png'.
+         * See README for more details.
+         */
+        std::string outputFileNameBase;
+        unsigned int numberOfImages = 0;            ///< Number of images to load.
+        unsigned int minNumberOfComponents = 1;     ///< Optimal value for Betti_0
+        unsigned int minNumberOfLoops = 0;          ///< Optimal value for Betti_1
+        unsigned int minNumberOfVoids = 0;          ///< Optimal value for Betti_2
+        double minRatio = 100.0;                    ///< Percentage of errors to resolve.
+        unsigned int downsampling = 1;              ///< Downsampling value for raw images.
+        unsigned int noise = 0;                     ///< Noise to add for raw images.
+        unsigned char coreThreshold = 200;          ///< Core Threshold.
+        unsigned char shapeThreshold = 150;         ///< Shape Threshold.
+        unsigned char neighborhoodThreshold = 100;  ///< Neighborhood Threshold.
+    };
+
     /**
      * @brief Constructor.
      */
@@ -90,21 +123,9 @@ public:
      */
     ~Simplifier();
 
-    void loadPreprocessedImage(std::string inputFileNameBase,
-                               unsigned int numberOfImages,
-                               unsigned int minNumberOfComponents = 1,
-                               unsigned int minNumberOfLoops = 0,
-                               unsigned int minNumberOfVoids = 0,
-                               double minRatio = 100.0);
-    void loadRawImage(std::string inputFileNameBase,
-                      unsigned int numberOfImages,
-                      unsigned int downsampling,
-                      unsigned int noise,
-                      unsigned int minNumberOfComponents = 1,
-                      unsigned int minNumberOfLoops = 0,
-                      unsigned int minNumberOfVoids = 0,
-                      double minRatio = 100.0);
-    void saveImage(std::string outputFileNameBase);
+    void loadPreprocessedImage(ImageData &data);
+    void loadRawImage(ImageData &data);
+    void saveImage(ImageData &data);
 
 
     void simplify(unsigned int boxWidth, int ccSize = -1);

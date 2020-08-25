@@ -85,6 +85,15 @@ public:
      */
     const std::array<unsigned int, 3> &getDimensions() const;
 
+    unsigned char getCoreThreshold() const;
+    void setCoreThreshold(unsigned char value);
+
+    unsigned char getShapeThreshold() const;
+    void setShapeThreshold(unsigned char value);
+
+    unsigned char getNeighborhoodThreshold() const;
+    void setNeighborhoodThreshold(unsigned char value);
+
 protected:
     /**
      * @brief Returns the grayscale value of the given pixel.
@@ -106,8 +115,11 @@ protected:
     void setDimensions(unsigned int x, unsigned int y, unsigned int z);
 
 private:
-    std::vector<png::image<png::gray_pixel>> _stack;  ///< Image stack.
-    std::array<unsigned int, 3> _dim;                 ///< Dimensions of the stack: [x,y,z].
+    std::vector<png::image<png::gray_pixel>> _stack;    ///< Image stack.
+    std::array<unsigned int, 3> _dim;                   ///< Dimensions of the stack: [x,y,z].
+    unsigned char _coreThreshold;                        ///< Core Threshold.
+    unsigned char _shapeThreshold;                       ///< Shape Threshold.
+    unsigned char _neighborhoodThreshold;                ///< Neighborhood Threshold.
 };
 
 }} // namespace shape_simplification::util
