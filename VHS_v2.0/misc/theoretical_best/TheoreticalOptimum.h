@@ -86,7 +86,10 @@ public:
      * @param numberOfImages The number of images in the stack to load.
      */
     void loadPreprocessedImage(std::string inputFileNameBase,
-                               unsigned int numberOfImages);
+                               unsigned int numberOfImages,
+                               unsigned char coreThreshold = 200,
+                               unsigned char shapeThreshold = 150,
+                               unsigned char neighborhoodThreshold = 100);
     /**
      * @brief Prints out the theoretical optimum for the latest loaded shape.
      */

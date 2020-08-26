@@ -30,13 +30,20 @@ TheoreticalOptimum::~TheoreticalOptimum()
 
 void TheoreticalOptimum::loadPreprocessedImage(
         std::string inputFileNameBase,
-        unsigned int numberOfImages){
+        unsigned int numberOfImages,
+        unsigned char coreThreshold,
+        unsigned char shapeThreshold,
+        unsigned char neighborhoodThreshold)
+{
     ProcessedImageStack proc;
     _shape.clear();
 
     _printMessage("--Load image.");
 
     proc.load(inputFileNameBase, numberOfImages);
+    proc.setCoreThreshold(coreThreshold);
+    proc.setShapeThreshold(shapeThreshold);
+    proc.setNeighborhoodThreshold(neighborhoodThreshold);
 
     _printMessage("--Load shape.");
 

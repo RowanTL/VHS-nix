@@ -39,7 +39,7 @@ void displayUsage()
 {
     std::cout << "Usage:\n";
     std::cout << "\n";
-    std::cout << "  ./optsol nberim inf_dp/in_fp\n";
+    std::cout << "  ./optsol nberim inf_dp/in_fp [tc ts tn]\n";
     std::cout << "\n";
     std::cout << "Lexis:\n";
     std::cout << "* nberim: number of images to process.\n";
@@ -47,23 +47,42 @@ void displayUsage()
                  "  E.g. \"flower_\" if the files are named \"flower_xxxx.png\", \n"
                  "  where xxxx has to be the numbering of the images with 4 digits.\n";
     std::cout << "* in_dp: directory path where the input images are stored.\n";
+    std::cout << "* tc: grayscale threshold value for the core.\n"
+                 "  Default value: 200.\n";
+    std::cout << "* ts: grayscale threshold value for the shape.\n"
+                 "  Default value: 150.\n";
+    std::cout << "* tn: grayscale threshold value for the neighborhood.\n"
+                 "  Default value: 100.\n";
     std::cout << "\nfor more details, see Readme file\n";
     std::cout << "\n";
 }
 
 int main(int argc, char **argv) {
-    if (argc != 3){
+    if (argc != 3 && argc != 6){
         displayUsage();
         return 0;
     }
 
     unsigned int numberOfImages = atoi(argv[1]);
     std::string inputFileNameBase(argv[2]);
+    unsigned char coreThreshold = 200;
+    unsigned char shapeThreshold = 150;
+    unsigned char neighborhoodThreshold = 100;
+
+    if (argc == 6){
+        coreThreshold = atoi(argv[3]);
+        shapeThreshold = atoi(argv[4]);
+        neighborhoodThreshold = atoi(argv[5]);
+    }
 
     TheoreticalOptimum to;
 
     resetTimer();
-    to.loadPreprocessedImage(inputFileNameBase, numberOfImages);
+    to.loadPreprocessedImage(inputFileNameBase,
+                             numberOfImages,
+                             coreThreshold,
+                             shapeThreshold,
+                             neighborhoodThreshold);
     printAndResetTime("Image load time:");
 
     printMessage("--Computation.");
