@@ -24,7 +24,8 @@ features of the resulting shape corresponds to the features common to _C_ and _N
 For more details we refer to [2].
 
 VHS is published under the GNU Lesser General Public License.
-**Authors:** Hannah Schreiber (hannah.schreiber@slu.edu)
+
+**Authors:** Hannah Schreiber (hannah.schreiber@slu.edu)<br>
 **Contributors:** David Letscher
 
 #### References
@@ -54,10 +55,10 @@ VHS uses four external libraries:
 	CMakeLists file (line 138).
 
 To compile, run in a terminal:
-> $	cd /path-to-software/
-> $	mkdir build
-> $	cd build
-> $	cmake ..
+> $	cd /path-to-software/<br>
+> $	mkdir build<br>
+> $	cd build<br>
+> $	cmake ..<br>
 > $	make
 
 To test if everything works fine:
@@ -81,10 +82,13 @@ The voxelized shape is build from a stack of numbered images: the dimensions of 
 images corresponds to the _x_-axis and _y_-axis and the numbers of the images to the _z_-axis.
 So a pixel with coordinates (_i_,_j_) of image number _k_ will be projected to the voxel
 of coordinates (_i_,_j_,_k_).
+
 The name of an image has to have to following format:
+
 	*xxxx.png
+
 where * is an arbitrary name all images in the stack have to have in common and
-xxxx the number of the image written with four digits.
+xxxx the number of the image written with four digits.<br>
 In the remaining of this section, we refer to * as _name\_base_ and
 to the relative or absolute path of the directory containing the stack as _dir\_path_.
 
@@ -102,6 +106,7 @@ to the relative or absolute path of the directory containing the stack as _dir\_
 	of your system. If no name\_base is given, then all output images will simply be named xxxx.png.
 	But do not forget the separator, otherwise the directory name will be use as base\_name.
 - trans: optional, value by which all pixel values higher than 10 will be shifted.
+
 The argument `--silent` can be added at an arbitrary position to avoid output in the terminal.
 
 #### optsol
@@ -115,6 +120,7 @@ The argument `--silent` can be added at an arbitrary position to avoid output in
 - tc: grayscale threshold value for the core. Default value: 200.
 - ts: grayscale threshold value for the shape. Default value: 150.
 - tn: grayscale threshold value for the neighborhood. Default value: 100.
+
 Note that if one threshold value is given, all three threshold values have to be given.
 
 #### simplifier
@@ -123,14 +129,14 @@ Note that if one threshold value is given, all three threshold values have to be
 where _args_ can be one or the combination of the following:
 
 Type of simplification (obligatory, choose only one):
-- `-s nberim in-dir\_path/in-name\_base out-dir\_path/[out-name\_base]`:
+- `-s nberim in-dir_path/in-name_base out-dir_path/[out-name_base]`:
 	standard simplifier.
-- `-f nberim in-dir\_path/in-name\_base out-dir\_path/[out-name\_base]`:
+- `-f nberim in-dir_path/in-name_base out-dir_path/[out-name_base]`:
 	standard simplifier, but removals are applied before additions
 	(it is the other way around in the standard version).
-- `-a nberim in-dir\_path/in-name\_base out-dir\_path/[out-name\_base]`:
+- `-a nberim in-dir_path/in-name_base out-dir_path/[out-name_base]`:
 	only additions are used.
-- `-r nberim in-dir\_path/in-name\_base out-dir\_path/[out-name\_base]`:
+- `-r nberim in-dir_path/in-name_base out-dir_path/[out-name_base]`:
 	only removals are used.
 	- nberim: number of images in the stack.
 	- in: input dir\_path and name\_base linked by the default directory separator for paths
