@@ -128,7 +128,7 @@ Note that if one threshold value is given, all three threshold values have to be
 	./simplifier [args]
 where _args_ can be one or the combination of the following:
 
-Type of simplification (obligatory, choose only one):
+\- Type of simplification (obligatory, choose only one):
 - `-s nberim in-dir_path/in-name_base out-dir_path/[out-name_base]`:
 	standard simplifier.
 - `-f nberim in-dir_path/in-name_base out-dir_path/[out-name_base]`:
@@ -148,7 +148,7 @@ Type of simplification (obligatory, choose only one):
 		xxxx.png.
 		But do not forget the separator, otherwise the directory name will be use as base\_name.
 
-Shape related options:
+\- Shape related options:
 - `-tc value`: grayscale threshold value for the core. Default value: 200.
 - `-ts value`: grayscale threshold value for the shape. Default value: 150.
 - `-tn value`: grayscale threshold value for the neighborhood. Default value: 100.
@@ -156,7 +156,7 @@ Shape related options:
 - `-opt1 value`: lowest number of loops possible. Default value: 0.
 - `-opt2 value`: lowest number of voids possible. Default value: 0.
 
-Simplification related options:
+\- Simplification related options:
 - `-w value`: width to be used for the boxes. Default value: 100.<br>
 	The persistence computation is done for each box instead of the whole shape at once.
 	The boxes can be overlapping (each voxel is covered eight times)
@@ -166,8 +166,8 @@ Simplification related options:
 	Give a negative value if no limit is wanted. Default value: -1.
 	This option is usually not needed.
 - `-pc value`: maximum % of noise to remove (Value between 0 and 100). Default value: 100.<br>
-	For a more accurate %, also specify the `-opt0/1/2` options whose value can be computed
+	For a more accurate %, also specify the `-opt0/1/2` options whose values can be computed
 	with `optsol`.
 
-Additional options:
+\- Additional options:
 - `--silent`: avoids output in the terminal.
