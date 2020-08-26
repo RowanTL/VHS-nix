@@ -163,7 +163,7 @@ where _args_ can be one or the combination of the following:
 	or not (each voxel is covered only once).
 - `--noover`: non-overlapping boxes.
 - `-cc value`: maximal size of a component to be completely removed.
-	Give a negative value if no limit is wanted. Default value: -1.
+	Give a negative value if no limit is wanted. Default value: -1.<br>
 	This option is usually not needed.
 - `-pc value`: maximum % of noise to remove (Value between 0 and 100). Default value: 100.<br>
 	For a more accurate %, also specify the `-opt0/1/2` options whose values can be computed
