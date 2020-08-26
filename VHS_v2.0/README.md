@@ -18,7 +18,7 @@ has to be included in the simplified shape and _N_, denoted as the _neighborhood
 voxels which can potentially be included in the simplified shape. VHS starts with an
 intermediate shape _S_ constructed from all voxels with a grayscale value higher than a given
 threshold _t_. Then _C_ and _N_ are build the same way from two additional thresholds _tc_
-and _tn_ such that _tn_ < _t_ < _tc_. VHS will then remove Voxels from _S_ which are not
+and _tn_ such that _tn_ < _t_ < _tc_. VHS will then remove voxels from _S_ which are not
 in the core or add voxels to _S_ which are in the neighborhood, such that the topological
 features of the resulting shape corresponds to the features common to _C_ and _N_.
 For more details we refer to [2].
@@ -69,7 +69,7 @@ And then to use the software:
 
 VHS comes with two additional executables:
 - _imgproc_: Downsamples a given stack of grayscale png images and/or shifts the pixel
-	values by a given value. Useful if your data is to big to be efficiently processed.
+	values by a given value. Useful if your data is too big to be efficiently processed.
 - _optsol_: Computes the optimal possible Betti numbers for the given input.
 	Enables to judge the accuracy of the simplifier output. It is also necessary for some
 	of the options of the simplifier.
@@ -94,7 +94,7 @@ to the relative or absolute path of the directory containing the stack as _dir\_
 
 #### imgproc
 
-	`./imgproc down noise nberim in-dir\_path/in-name\_base out-dir\_path/[out-name\_base] [trans]`
+	./imgproc down noise nberim in-dir_path/in-name_base out-dir_path/[out-name_base] [trans]
 - down: value by which the image dimensions should be divided.
 - noise: maximal noise value (unsigned integer value) added to the grayscale value of a pixel.
 - nberim: number of images in the stack.
@@ -111,7 +111,7 @@ The argument `--silent` can be added at an arbitrary position to avoid output in
 
 #### optsol
 
-	`./optsol nberim in-dir\_path/in-name\_base [tc ts tn]`
+	./optsol nberim in-dir_path/in-name_base [tc ts tn]
 - nberim: number of images in the stack.
 - in: input dir\_path and name\_base linked by the default directory separator for paths
 	of your system. Note that name\_base can be omitted if the images are only named by they
@@ -125,7 +125,7 @@ Note that if one threshold value is given, all three threshold values have to be
 
 #### simplifier
 
-	`./simplifier [args]`
+	./simplifier [args]
 where _args_ can be one or the combination of the following:
 
 Type of simplification (obligatory, choose only one):
@@ -157,7 +157,7 @@ Shape related options:
 - `-opt2 value`: lowest number of voids possible. Default value: 0.
 
 Simplification related options:
-- `-w value`: width to be used for the boxes. Default value: 100.
+- `-w value`: width to be used for the boxes. Default value: 100.<br>
 	The persistence computation is done for each box instead of the whole shape at once.
 	The boxes can be overlapping (each voxel is covered eight times)
 	or not (each voxel is covered only once).
@@ -165,7 +165,7 @@ Simplification related options:
 - `-cc value`: maximal size of a component to be completely removed.
 	Give a negative value if no limit is wanted. Default value: -1.
 	This option is usually not needed.
-- `-pc value`: maximum % of noise to remove (Value between 0 and 100). Default value: 100.
+- `-pc value`: maximum % of noise to remove (Value between 0 and 100). Default value: 100.<br>
 	For a more accurate %, also specify the `-opt0/1/2` options whose value can be computed
 	with `optsol`.
 
