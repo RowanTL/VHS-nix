@@ -30,7 +30,7 @@ VHS is published under the GNU Lesser General Public License.
 #### References
 [1] D. Attali, U. Bauer, O. Devillers, M. Glisse, and A. Lieutier.
 Homological Reconstruction and Simplification in R3. _Computational Geometry_,
-48(8):606 – 621, 2015.
+48(8):606 – 621, 2015.<br>
 [2] E. W. Chambers, T. Ju, D. Letscher, H. Schreiber, D. Zeng.
 VHS: a package for homological simplification of voxelized data in R3.
 **link-to-come**, 2020.
