@@ -123,30 +123,90 @@ public:
      */
     ~Simplifier();
 
+    /**
+     * @brief Loads image stack from given data.
+     * Ignores values for downsampling and noise.
+     * @param data Structure containing all necessary
+     * information to load the image stack.
+     */
     void loadPreprocessedImage(ImageData &data);
+    /**
+     * @brief Loads image stack from given data with
+     * downsampling and possibly noise addition.
+     * @param data Structure containing all necessary
+     * information to load the image stack.
+     */
     void loadRawImage(ImageData &data);
+    /**
+     * @brief Writes the result of the simplification
+     * as an png image stack using the file name base
+     * given by @p data.
+     * @param data Structure containing all necessary
+     * information to write the image stack.
+     */
     void saveImage(ImageData &data);
 
-
+    /**
+     * @brief Simplifies the latest loaded shape.
+     * @param boxWidth Width of boxes to use for persistence.
+     * @param ccSize Maximal size of a connected component to remove.
+     * Give negative value if no limit.
+     * @param noover True if the boxes should not overlap, false otherwise.
+     * See README file for more detailed explanation.
+     */
     void simplify(unsigned int boxWidth, int ccSize = -1, bool noover = false);
+    /**
+     * @brief Simplifies the latest loaded shape,
+     * but searches for removals first (inverse of \ref simplify).
+     * @param boxWidth Width of boxes to use for persistence.
+     * @param ccSize Maximal size of a connected component to remove.
+     * Give negative value if no limit.
+     * @param noover True if the boxes should not overlap, false otherwise.
+     * See README file for more detailed explanation.
+     */
     void simplifyWithSubFirst(unsigned int boxWidth, int ccSize = -1, bool noover = false);
+    /**
+     * @brief Simplifies the latest loaded shape,
+     * but uses only additions.
+     * @param boxWidth Width of boxes to use for persistence.
+     * @param ccSize Maximal size of a connected component to remove.
+     * Give negative value if no limit.
+     * @param noover True if the boxes should not overlap, false otherwise.
+     * See README file for more detailed explanation.
+     */
     void simplifyOnlyAdditively(unsigned int boxWidth, bool noover = false);
+    /**
+     * @brief Simplifies the latest loaded shape,
+     * but uses only removals.
+     * @param boxWidth Width of boxes to use for persistence.
+     * @param ccSize Maximal size of a connected component to remove.
+     * Give negative value if no limit.
+     * @param noover True if the boxes should not overlap, false otherwise.
+     * See README file for more detailed explanation.
+     */
     void simplifyOnlySubstractively(unsigned int boxWidth, int ccSize = -1, bool noover = false);
 
+    /**
+     * @brief Prints basic data of the current state of the shape:
+     *
+     * dimensions, number of voxels in the core, number of non-core voxels in the shape,
+     * total number of voxels in the shape, number of voxels in the neighborhood,
+     * Euler characteristic, number of components, number of loops, number of voids.
+     */
     void printShapeData();
 
 private:
-    AugShape _shape;
-    unsigned int _boxWidth;
-    bool _noover;
-    Point _maxCoordinate;
-    unsigned int _minNumberOfComponents;
-    unsigned int _minNumberOfLoops;
-    unsigned int _minNumberOfVoids;
-    unsigned int _optNumberOfVoids;
+    AugShape _shape;                        ///< Latest loaded shape.
+    unsigned int _boxWidth;                 ///< Box width.
+    bool _noover;                           ///< True if the boxes should not overlap.
+    Point _maxCoordinate;                   ///< Maximal coordinate of a voxel.
+    unsigned int _minNumberOfComponents;    ///< Goal for number of connected components.
+    unsigned int _minNumberOfLoops;         ///< Goal for number of loops.
+    unsigned int _minNumberOfVoids;         ///< Goal for number of voids.
+    unsigned int _optNumberOfVoids;         ///< Best possible number of voids.
 
-    clock_t _time;
-    bool _silent;
+    clock_t _time;                          ///< Stores time for timing.
+    bool _silent;                           ///< True if no output in the terminal.
 
     bool _simplifyH0WithAdditions(
             AdditiveH0CandidateGenerator<AugShape,Voxel>& gen,

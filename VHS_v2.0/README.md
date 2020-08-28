@@ -74,6 +74,11 @@ VHS comes with two additional executables:
 	Enables to judge the accuracy of the simplifier output. It is also necessary for some
 	of the options of the simplifier.
 
+To build documentation:
+> $	make doc
+The documentation is made with **Doxygen** (<https://www.doxygen.nl/index.html>) and requieres
+additionaly the _dot_ tool of **Graphiviz** (<http://www.graphviz.org>).
+
 USAGE
 --------------------------------
 
