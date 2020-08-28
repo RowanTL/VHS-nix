@@ -44,7 +44,7 @@ To compile VHS easily, we recommend to use CMake (<https://cmake.org/>).
 VHS uses four external libraries:
 - **libpng** (<http://www.libpng.org/pub/png/libpng.html>): standard library for manipulation of
 	PNG images.
-- **png++** (<https://www.nongnu.org/pngpp/>): C++ wrapper for the libpng library.
+- **pngpp** (<https://www.nongnu.org/pngpp/>): C\+\+ wrapper for the libpng library.
 	Version 0.2.9 is available in the _external_ directory of the package and does
 	not need to be reinstalled. If you want to use another version, please rectify the path in the
 	CMakeLists file (line 139).
