@@ -717,7 +717,7 @@ LAYOUT_FILE            =
 #LATEX_BIB_STYLE.To use this feature you need bibtex and perl available in the
 #search path.See also \cite for info how to create references.
 
-CITE_BIB_FILES         =
+CITE_BIB_FILES         = @CMAKE_CURRENT_SOURCE_DIR@/docs/doc.bib
 
 #-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
 #Configuration options related to warning and progress messages
@@ -863,7 +863,8 @@ FILE_PATTERNS          = *.c \
                          *.vhdl \
                          *.ucf \
                          *.qsf \
-                         *.tpp
+                         *.tpp \
+                         *.txx
 
 #The RECURSIVE tag can be used to specify whether or not subdirectories should
 #be searched for input files as well.

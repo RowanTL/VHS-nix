@@ -35,6 +35,7 @@ template <class Element>
 /**
  * class UnionFindDelete
  * @brief Union-Find Structure with constant time deletion.
+ * The structure is based on \cite union-find-delete.
  * @tparam Element Type of the elements stored in the structure.
  * Has to provide a corresponding std::hash function
  * and should be comparable (== operation).
