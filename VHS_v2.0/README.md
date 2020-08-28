@@ -76,6 +76,7 @@ VHS comes with two additional executables:
 
 To build documentation:
 > $	make doc
+
 The documentation is made with **Doxygen** (<https://www.doxygen.nl/index.html>) and requieres
 additionaly the _dot_ tool of **Graphiviz** (<http://www.graphviz.org>).
 
