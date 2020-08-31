@@ -32,9 +32,9 @@ namespace shape_simplification{ namespace shape {
 template <class Voxel>
 /**
  * class AddableShape
- * @brief Shape class which inherites from \ref BaseShape.
+ * @brief Shape class which inherits from \ref BaseShape.
  * It has the additional property that new Voxels can be added to it after
- * instanciation.
+ * instantiation.
  * @tparam Voxel Voxel class used by the shape.
  **/
 class AddableShape : virtual public BaseShape<Voxel> {
@@ -53,7 +53,7 @@ public:
     using voxel_container = typename BaseShape<Voxel>::voxel_container;
 
     /**
-     * @brief Constructor for an emty shape.
+     * @brief Constructor for an empty shape.
      */
     AddableShape();
     /**
@@ -66,7 +66,7 @@ public:
 
     /**
      * @brief Test if the class has the property to add voxels to the shape after
-     * instanciation.
+     * instantiation.
      * @return True.
      */
     static constexpr bool isAddable();

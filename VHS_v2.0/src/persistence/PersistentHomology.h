@@ -82,10 +82,10 @@ public:
      */
     const std::vector<persistent_pair> &getPersistentPairs() const;
     /**
-     * @brief Returns Voxels in the cycle
-     * which created the given persistence pair.
+     * @brief Returns Voxels in the representative chain
+     * which killed a cycle at the death time in the given persistence pair.
      * @param pair Persistence pair.
-     * @param cycle Reference to an empty set of
+     * @param chain Reference to an empty set of
      * Voxel where the result will be stored.
      */
     void getCorrespondingVoxelChain(persistent_pair &pair, std::vector<Voxel> &chain);

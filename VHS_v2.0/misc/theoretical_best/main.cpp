@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
         neighborhoodThreshold = atoi(argv[5]);
     }
 
-    TheoreticalOptimum to;
+    shape_simplification::optimum::TheoreticalOptimum to;
 
     resetTimer();
     to.loadPreprocessedImage(inputFileNameBase,

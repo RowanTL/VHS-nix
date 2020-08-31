@@ -44,6 +44,8 @@
 #include "shape/DualSkeleton.h"
 #include "shape/Cell.h"
 
+namespace shape_simplification { namespace optimum {
+
 using shape_simplification::util::BaseImageStack;
 using shape_simplification::util::ProcessedImageStack;
 using shape_simplification::shape::Voxel;
@@ -174,4 +176,6 @@ private:
      */
     void _printMessage(std::string message);
 };
+
+}} // shape_simplification::optimum
 

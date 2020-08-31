@@ -20,6 +20,8 @@
 
 #include "TheoreticalOptimum.h"
 
+namespace shape_simplification::optimum {
+
 TheoreticalOptimum::TheoreticalOptimum()
     : _minBettyNumbers{0, 0, 0},
       _nberOfCoreCells(0)
@@ -226,3 +228,5 @@ void TheoreticalOptimum::_printTheoreticalOptimum(){
 void TheoreticalOptimum::_printMessage(std::string message){
     std::cout << message << std::endl;
 }
+
+} // namespace shape_simplification::optimum
