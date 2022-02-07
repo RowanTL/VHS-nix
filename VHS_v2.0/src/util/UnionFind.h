@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -27,6 +27,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace shape_simplification{ namespace util {
 
@@ -58,15 +59,37 @@ public:
      * @param e1 An element of the first component.
      * @param e2 An element of the second component.
      * @pre e1 is contained in the structure.
+     * @return True if the merge happens (both given elements were
+     * contained and in different components), false otherwise.
      */
-    void merge(const Element &e1, const Element &e2);
+    bool merge(const Element &e1, const Element &e2);
 
     /**
      * @brief Tests if an element is already initialized.
      * @param e Element to test.
-     * @return True if the structure contains the element @p e, false otherwise.
+     * @return True if the structure contains the element @p e,
+     * false otherwise.
      */
-    bool contains(const Element &e);
+    bool contains(const Element &e) const;
+
+    /**
+     * @brief Retrieves the roots of all connected components of
+     * given minimum size.
+     * @param roots Empty container for the roots.
+     * @param minSize Minimum size of the component.
+     */
+    void getRoots(std::unordered_set<Element>& roots, int minSize);
+    /**
+     * @brief Retrieves the roots of all connected components.
+     * @param roots Empty container for the roots.
+     */
+    void getRoots(std::unordered_set<Element>& roots);
+
+    /**
+     * @brief Retrieves all connected components as vectors.
+     * @param sets Empty container.
+     */
+    void getSets(std::vector<std::vector<Element> >& sets);
 
     /**
      * @brief Returns the representative of the component
@@ -78,7 +101,7 @@ public:
     Element find(const Element &e);
 
     /**
-     * @brief Return the number of components.
+     * @brief Returns the number of components.
      * @return The number of components.
      */
     int size() const;
@@ -89,7 +112,16 @@ public:
     void clear();
 
 private:
+    /**
+     * @brief Node structure.
+     */
     struct Node{
+        /**
+         * @brief Constructor.
+         * @param element
+         * @param parent
+         * @param rank
+         */
         Node(const Element& element, index parent, int rank)
             : _element(element), _parent(parent), _rank(rank){}
 

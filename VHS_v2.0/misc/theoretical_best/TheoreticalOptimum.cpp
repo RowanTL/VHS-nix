@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -118,7 +118,7 @@ void TheoreticalOptimum::_constructMatrix(
     cell_iterator<3> cubeEnd = cells.end<3>();
 
     index current = 0;
-    for (int timestamp = 0; timestamp < 3; ++timestamp) {
+    for (unsigned int timestamp = 0; timestamp < 3; ++timestamp) {
         _addVertexColumns(vertexIt, vertexEnd, timestamp,
                           current, vertexToIndex,
                           matrix, indexToTimestamp);
@@ -138,7 +138,7 @@ void TheoreticalOptimum::_constructMatrix(
 void TheoreticalOptimum::_addVertexColumns(
         cell_iterator<0> &cellIt,
         cell_iterator<0> &endIt,
-        int timestamp,
+        unsigned int timestamp,
         index &current,
         std::unordered_map<Cell<0>, index, Cell<0>::CellHasher> &cellToIndex,
         matrix_type &matrix,
@@ -163,11 +163,11 @@ template <unsigned int dim>
 void TheoreticalOptimum::_addColumns(
         cell_iterator<dim> &cellIt,
         cell_iterator<dim> &endIt,
-        int timestamp,
+        unsigned int timestamp,
         index &current,
-        std::unordered_map<Cell<dim>, index, typename Cell<dim>::CellHasher>
+        std::unordered_map<Cell<dim>,index,typename Cell<dim>::CellHasher>
         &cellToIndex,
-        std::unordered_map<Cell<dim - 1>, index, typename Cell<dim - 1>::CellHasher>
+        std::unordered_map<Cell<dim - 1>,index,typename Cell<dim-1>::CellHasher>
         &boundaryCellToIndex,
         matrix_type &matrix,
         std::vector<timestamp_type>& indexToTimestamp)
@@ -200,16 +200,19 @@ void TheoreticalOptimum::_constructFiltration(
     cells.resize<dim>(skeleton.template getNumberOfCells<dim>());
 
     unsigned int coreIndex = 0;
-    unsigned int shapeIndex = skeleton.template getNumberOfCellsInMainShape<dim>() - 1;
+    unsigned int shapeIndex = skeleton.getNumberOfCellsInMainShape<dim>() - 1;
     unsigned int neighborhoodIndex = shapeIndex + 1;
 
     for (auto it = skeleton.template begin<dim>();
          it != skeleton.template end<dim>();
          ++it)
     {
-        if ((*it).getTimestamp() == 0) cells.insertAt<dim>(*it, coreIndex++);
-        else if ((*it).getTimestamp() == 1) cells.insertAt<dim>(*it, shapeIndex--);
-        else cells.insertAt<dim>(*it, neighborhoodIndex++);
+        if ((*it).getTimestamp() == 0)
+            cells.insertAt<dim>(*it, coreIndex++);
+        else if ((*it).getTimestamp() == 1)
+            cells.insertAt<dim>(*it, shapeIndex--);
+        else
+            cells.insertAt<dim>(*it, neighborhoodIndex++);
     }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -241,7 +241,9 @@ inline constexpr unsigned int Cell<dim>::getDim() {
 }
 
 template <unsigned int dim>
-inline constexpr typename Cell<dim>::timestamp_type Cell<dim>::getTimestamp() const {
+inline constexpr
+typename Cell<dim>::timestamp_type Cell<dim>::getTimestamp() const
+{
     return _timestamp;
 }
 
@@ -304,11 +306,11 @@ template <> inline typename Cell<3>::boundary_container Cell<3>::getBoundary() {
 
 template <unsigned int dim>
 bool Cell<dim>::operator==(const Cell<dim> &other) const {
-    for (typename vertex_container::size_type i = 0; i < _vertices.size(); ++i) {
+    for (typename vertex_container::size_type i = 0; i < _vertices.size(); ++i)
+    {
         if (_vertices.at(i) != other[i])
             return false;
     }
-
     return true;
 }
 
@@ -344,7 +346,8 @@ int Cell<dim>::vertexToCoordinate(vertex v, unsigned int i){
 template <unsigned int dim>
 typename Cell<dim>::vertex::data_type Cell<dim>::_pointToVertexData(Point &p) {
     return (static_cast<uint64_t>(p[2]) << _coordShift * 2) +
-            (static_cast<uint64_t>(p[1]) << _coordShift) + static_cast<uint64_t>(p[0]);
+            (static_cast<uint64_t>(p[1]) << _coordShift) +
+            static_cast<uint64_t>(p[0]);
 }
 
 template <>
@@ -404,6 +407,54 @@ inline CellContainer::cell_iterator<2> CellContainer::end<2>(){
 
 template <>
 inline CellContainer::cell_iterator<3> CellContainer::end<3>(){
+    return _cubes.end();
+}
+
+template <>
+inline CellContainer::const_cell_iterator<0> CellContainer::begin<0>() const
+{
+    return _vertices.begin();
+}
+
+template <>
+inline CellContainer::const_cell_iterator<1> CellContainer::begin<1>() const
+{
+    return _edges.begin();
+}
+
+template <>
+inline CellContainer::const_cell_iterator<2> CellContainer::begin<2>() const
+{
+    return _squares.begin();
+}
+
+template <>
+inline CellContainer::const_cell_iterator<3> CellContainer::begin<3>() const
+{
+    return _cubes.begin();
+}
+
+template <>
+inline CellContainer::const_cell_iterator<0> CellContainer::end<0>() const
+{
+    return _vertices.end();
+}
+
+template <>
+inline CellContainer::const_cell_iterator<1> CellContainer::end<1>() const
+{
+    return _edges.end();
+}
+
+template <>
+inline CellContainer::const_cell_iterator<2> CellContainer::end<2>() const
+{
+    return _squares.end();
+}
+
+template <>
+inline CellContainer::const_cell_iterator<3> CellContainer::end<3>() const
+{
     return _cubes.end();
 }
 
@@ -488,23 +539,87 @@ inline void CellContainer::insertAt(Cell<3>& cell, size_type<3> index){
 }
 
 template <>
-inline void CellContainer::sort<0>(){
-    std::sort(_vertices.begin(), _vertices.end(), Cell<0>::CellOrder());
+inline void CellContainer::sortLexicographicaly<0>(){
+    std::sort(_vertices.begin(),
+              _vertices.end(),
+              Cell<0>::LexicographicalOrder());
 }
 
 template <>
-inline void CellContainer::sort<1>(){
-    std::sort(_edges.begin(), _edges.end(), Cell<1>::CellOrder());
+inline void CellContainer::sortLexicographicaly<1>(){
+    std::sort(_edges.begin(),
+              _edges.end(),
+              Cell<1>::LexicographicalOrder());
 }
 
 template <>
-inline void CellContainer::sort<2>(){
-    std::sort(_squares.begin(), _squares.end(), Cell<2>::CellOrder());
+inline void CellContainer::sortLexicographicaly<2>(){
+    std::sort(_squares.begin(),
+              _squares.end(),
+              Cell<2>::LexicographicalOrder());
 }
 
 template <>
-inline void CellContainer::sort<3>(){
-    std::sort(_cubes.begin(), _cubes.end(), Cell<3>::CellOrder());
+inline void CellContainer::sortLexicographicaly<3>(){
+    std::sort(_cubes.begin(),
+              _cubes.end(),
+              Cell<3>::LexicographicalOrder());
+}
+
+template <>
+inline void CellContainer::sortByTimestamp<0>(){
+    std::sort(_vertices.begin(),
+              _vertices.end(),
+              Cell<0>::TimestampOrder());
+}
+
+template <>
+inline void CellContainer::sortByTimestamp<1>(){
+    std::sort(_edges.begin(),
+              _edges.end(),
+              Cell<1>::TimestampOrder());
+}
+
+template <>
+inline void CellContainer::sortByTimestamp<2>(){
+    std::sort(_squares.begin(),
+              _squares.end(),
+              Cell<2>::TimestampOrder());
+}
+
+template <>
+inline void CellContainer::sortByTimestamp<3>(){
+    std::sort(_cubes.begin(),
+              _cubes.end(),
+              Cell<3>::TimestampOrder());
+}
+
+template <>
+inline void CellContainer::sortForFiltration<0>(){
+    std::sort(_vertices.begin(),
+              _vertices.end(),
+              Cell<0>::FiltrationOrder());
+}
+
+template <>
+inline void CellContainer::sortForFiltration<1>(){
+    std::sort(_edges.begin(),
+              _edges.end(),
+              Cell<1>::FiltrationOrder());
+}
+
+template <>
+inline void CellContainer::sortForFiltration<2>(){
+    std::sort(_squares.begin(),
+              _squares.end(),
+              Cell<2>::FiltrationOrder());
+}
+
+template <>
+inline void CellContainer::sortForFiltration<3>(){
+    std::sort(_cubes.begin(),
+              _cubes.end(),
+              Cell<3>::FiltrationOrder());
 }
 
 

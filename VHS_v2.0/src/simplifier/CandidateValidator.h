@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -31,12 +31,16 @@
 #include <unordered_set>
 
 #include "shape/ShapeOverlay.h"
-#include "shape/VoxelSkeletonIterators.h"
+#include "shape/ShapeUtilities.h"
 
 namespace shape_simplification{ namespace simplifier {
 
 using shape::ExtendedNeighborsIterator;
 using shape::ShapeOverlay;
+using shape::Level;
+using shape::CORE;
+using shape::MAIN_SHAPE;
+using shape::NEIGHBORHOOD;
 
 template <class AugmentedShape, class Voxel>
 /**
@@ -46,11 +50,6 @@ template <class AugmentedShape, class Voxel>
  **/
 class CandidateValidator {
 public:
-    using Level = typename AugmentedShape::Level;
-    static const Level CORE = AugmentedShape::CORE;
-    static const Level MAIN_SHAPE = AugmentedShape::MAIN_SHAPE;
-    static const Level NEIGHBORHOOD = AugmentedShape::NEIGHBORHOOD;
-    static const Level OUTSIDE = AugmentedShape::OUTSIDE;
     template <Level level>
     using neighbor_iterator =
         typename AugmentedShape::template neighbor_iterator<level>;
@@ -62,16 +61,10 @@ public:
     using candidate_container = std::vector<voxel_container>;
     using candidate_iterator = typename candidate_container::iterator;
     using valid_candidate_container = std::unordered_set<Voxel>;
-    using valid_candidate_iterator = typename valid_candidate_container::iterator;
+    using valid_candidate_iterator =
+        typename valid_candidate_container::iterator;
     using collar_container = std::unordered_set<Voxel>;
     using collar_iterator = typename std::unordered_set<Voxel>::iterator;
-
-    struct CandidateOrder {
-        bool operator()(const voxel_container &c1, const voxel_container &c2) const {
-            return c1.size() < c2.size();
-        }
-    };
-
     using rem_candidate_container = std::unordered_set<voxel_container>;
 
     /**
@@ -101,7 +94,8 @@ public:
      * @pre Assumes that voids are already filled when possible.
      */
     const valid_candidate_container &
-    verifyAdditiveCandidatesValidityWithH2Guarantee(const candidate_container &candidates);
+    verifyAdditiveCandidatesValidityWithH2Guarantee(
+            const candidate_container &candidates);
     /**
      * @brief Sorts out a list of voxels which are guaranteed to
      * simplify the stored shape from vectors of substractive candidates.
@@ -110,34 +104,42 @@ public:
      * @pre Assumes that non-core components were removed.
      */
     const valid_candidate_container &
-    verifySubstractiveCandidatesValidity(const candidate_container &candidates);
+    verifySubstractiveCandidatesValidity(
+            const candidate_container &candidates);
     /**
      * @brief Sorts out a list of voxels which are guaranteed to
-     * simplify the stored shape from vectors of H2-safe substractive candidates.
+     * simplify the stored shape from vectors of H2-safe substractive
+     * candidates.
      * @param candidates Vectors of candidates which does not affect H2.
      * @return A reference to the resulting voxels.
      * @pre Assumes that non-core components were removed.
      */
     const valid_candidate_container &
-    verifySubstractiveCandidatesValidityWithH2Guarantee(const candidate_container &candidates);
+    verifySubstractiveCandidatesValidityWithH2Guarantee(
+            const candidate_container &candidates);
     /**
      * @brief Sorts out a list of voxels which are guaranteed to
-     * simplify the stored shape from vectors of H0 and H2-safe substractive candidates.
-     * @param candidates Vectors of candidates which does not affect H0 and H2.
+     * simplify the stored shape from vectors of H0 and H2-safe
+     * substractive candidates.
+     * @param candidates Vectors of candidates which does not affect
+     * H0 and H2.
      * @return A reference to the resulting voxels.
      * @pre Assumes that non-core components were removed.
      */
     const valid_candidate_container &
-    verifySubstractiveCandidatesValidityWithH0H2Guarantee(const candidate_container &candidates);
+    verifySubstractiveCandidatesValidityWithH0H2Guarantee(
+            const candidate_container &candidates);
     /**
      * @brief Sorts out a list of voxels which are guaranteed to
-     * simplify the stored shape from vectors of H0-safe substractive candidates.
+     * simplify the stored shape from vectors of H0-safe substractive
+     * candidates.
      * @param candidates Vectors of candidates which does not affect H0.
      * @return A reference to the resulting voxels.
      * @pre Assumes that non-core components were removed.
      */
     const valid_candidate_container &
-    verifySubstractiveCandidatesValidityWithH0Guarantee(const candidate_container &candidates);
+    verifySubstractiveCandidatesValidityWithH0Guarantee(
+            const candidate_container &candidates);
 
 private:
     valid_candidate_container _validCandidates;     ///< Resulting voxels. Reseted by
@@ -214,7 +216,8 @@ private:
             rem_candidate_container& remainingCandidates);
     /**
      * @brief Chooses valid candidates from the given group of
-     * H0 and h2-safe substractive candidates with a first-come-first-served strategy.
+     * H0 and h2-safe substractive candidates with a first-come-first-served
+     * strategy.
      * @param currentGroup Current group of non overlapping candidates.
      * @param remainingCandidates Non processed candidates.
      * @return A new maximal for the current group size.

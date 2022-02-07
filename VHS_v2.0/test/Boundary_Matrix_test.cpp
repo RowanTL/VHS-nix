@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -23,16 +23,69 @@
  * Test file for the Boundary Matrix classes.
  **/
 
-#include <algorithm>
 #include <gtest/gtest.h>
-#include <random>
 #include <vector>
 
 #include "persistence/BoundaryMatrix.h"
 
 using shape_simplification::persistence::BoundaryMatrix;
 
-TEST(MatrixTest, Constructor) {
+TEST(BoundaryMatrixTest, Modifier) {
+    BoundaryMatrix matrix;
+    std::vector<BoundaryMatrix::index> col;
+
+    matrix.setNumberOfColumns(6);
+
+    // vertex 0
+    matrix.addColumn(0, 0, col);
+    // vertex 1
+    matrix.addColumn(1, 0, col);
+    // vertex 2
+    matrix.addColumn(2, 0, col);
+    // edge 3 : (0,1)
+    col.push_back(0);
+    col.push_back(1);
+    matrix.addColumn(3, 1, col);
+    // edge 4 : (0,2)
+    col.at(1) = 2;
+    matrix.addColumn(4, 1, col);
+    // edge 5 : (1,2)
+    col.at(0) = 1;
+    matrix.addColumn(5, 1, col);
+
+    matrix.addColTo(4, 5);
+    ASSERT_EQ(2, matrix.getPivot(4));
+    ASSERT_EQ(1, matrix.getPivot(5));
+
+    col.clear();
+    matrix.getColumn(4, col);
+    ASSERT_EQ(2, col.size());
+    ASSERT_EQ(0, col.at(0));
+    ASSERT_EQ(2, col.at(1));
+
+    col.clear();
+    matrix.getColumn(5, col);
+    ASSERT_EQ(2, col.size());
+    ASSERT_EQ(0, col.at(0));
+    ASSERT_EQ(1, col.at(1));
+
+    col.clear();
+    matrix.getInverseColumn(4, col);
+    ASSERT_EQ(1, col.size());
+    ASSERT_EQ(4, col.at(0));
+
+    col.clear();
+    matrix.getInverseColumn(5, col);
+    ASSERT_EQ(2, col.size());
+    ASSERT_EQ(4, col.at(0));
+    ASSERT_EQ(5, col.at(1));
+
+    matrix.clearColumn(3);
+    matrix.getColumn(3, col);
+    ASSERT_EQ(0, col.size());
+}
+
+TEST(BoundaryMatrixTest, Access) {
     BoundaryMatrix matrix;
     std::vector<BoundaryMatrix::index> col;
 
@@ -70,30 +123,26 @@ TEST(MatrixTest, Constructor) {
     ASSERT_EQ(1, matrix.getDimension(4));
     ASSERT_EQ(1, matrix.getDimension(5));
 
-    matrix.addColTo(4, 5);
-    ASSERT_EQ(2, matrix.getPivot(4));
-    ASSERT_EQ(1, matrix.getPivot(5));
-
     col.clear();
     matrix.getColumn(4, col);
+    ASSERT_EQ(2, col.size());
     ASSERT_EQ(0, col.at(0));
     ASSERT_EQ(2, col.at(1));
-    ASSERT_EQ(2, col.size());
 
     col.clear();
     matrix.getColumn(5, col);
-    ASSERT_EQ(0, col.at(0));
-    ASSERT_EQ(1, col.at(1));
     ASSERT_EQ(2, col.size());
+    ASSERT_EQ(1, col.at(0));
+    ASSERT_EQ(2, col.at(1));
 
     col.clear();
     matrix.getInverseColumn(4, col);
-    ASSERT_EQ(4, col.at(0));
     ASSERT_EQ(1, col.size());
+    ASSERT_EQ(4, col.at(0));
 
     col.clear();
     matrix.getInverseColumn(5, col);
-    ASSERT_EQ(4, col.at(0));
-    ASSERT_EQ(5, col.at(1));
-    ASSERT_EQ(2, col.size());
+    ASSERT_EQ(1, col.size());
+    ASSERT_EQ(5, col.at(0));
 }
+

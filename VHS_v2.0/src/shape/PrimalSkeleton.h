@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -31,6 +31,7 @@
 #include "shape/BaseSkeleton.h"
 #include "shape/Cell.h"
 #include "shape/VoxelSkeletonIterators.h"
+#include "shape/ShapeUtilities.h"
 
 namespace shape_simplification{ namespace shape {
 
@@ -63,7 +64,6 @@ public:
     using cell_container = typename BSkeleton::template cell_container<dim>;
     template <int dim>
     using cell_iterator = typename BSkeleton::template cell_iterator<dim>;
-    using typename BSkeleton::Level;
 
     /**
      * @brief Constructor.
@@ -96,7 +96,8 @@ public:
      * @param container Container in which the voxel is stored.
      * The container will lose its previous content.
      */
-    static void getCorrespondingVoxels(vertex &vertex, std::array<Voxel, 8>& container);
+    static void getCorrespondingVoxels(
+            vertex &vertex, std::array<Voxel, 8>& container);
     /**
      * @brief Returns the voxel corresponding to the dual cube of
      * the given vertex, independently if the voxel is in the shape or not.
@@ -104,7 +105,8 @@ public:
      * @param container Container in which the voxel is stored.
      * The container will lose its previous content.
      */
-    static void getCorrespondingVoxels(vertex &vertex, std::vector<Voxel>& container);
+    static void getCorrespondingVoxels(
+            vertex &vertex, std::vector<Voxel>& container);
 
     /**
      * @brief Returns the voxels containing the dual square of
@@ -113,7 +115,8 @@ public:
      * @param container Container in which the voxels are stored.
      * The container will lose its previous content.
      */
-    static void getCorrespondingVoxels(edge &edge, std::array<Voxel, 4>& container);
+    static void getCorrespondingVoxels(
+            edge &edge, std::array<Voxel, 4>& container);
     /**
      * @brief Returns the voxels containing the dual square of
      * the given edge, independently if the voxels are in the shape or not.
@@ -121,7 +124,8 @@ public:
      * @param container Container in which the voxels are stored.
      * The container will lose its previous content.
      */
-    static void getCorrespondingVoxels(edge &edge, std::vector<Voxel>& container);
+    static void getCorrespondingVoxels(
+            edge &edge, std::vector<Voxel>& container);
 
     /**
      * @brief Returns the voxels containing the dual edge of
@@ -130,7 +134,8 @@ public:
      * @param container Container in which the voxels are stored.
      * The container will lose its previous content.
      */
-    static void getCorrespondingVoxels(square &square, std::array<Voxel, 2>& container);
+    static void getCorrespondingVoxels(
+            square &square, std::array<Voxel, 2>& container);
     /**
      * @brief Returns the voxels containing the dual edge of
      * the given square, independently if the voxels are in the shape or not.
@@ -138,7 +143,8 @@ public:
      * @param container Container in which the voxels are stored.
      * The container will lose its previous content.
      */
-    static void getCorrespondingVoxels(square &square, std::vector<Voxel>& container);
+    static void getCorrespondingVoxels(
+            square &square, std::vector<Voxel>& container);
 
     /**
      * @brief Returns the voxels containing the dual vertex of
@@ -147,7 +153,8 @@ public:
      * @param container Container in which the voxels are stored.
      * The container will lose its previous content.
      */
-    static void getCorrespondingVoxels(cube &cube, std::array<Voxel, 1>& container);
+    static void getCorrespondingVoxels(
+            cube &cube, std::array<Voxel, 1>& container);
     /**
      * @brief Returns the voxels containing the dual vertex of
      * the given cube, independently if the voxels are in the shape or not.
@@ -155,7 +162,8 @@ public:
      * @param container Container in which the voxels are stored.
      * The container will lose its previous content.
      */
-    static void getCorrespondingVoxels(cube &cube, std::vector<Voxel>& container);
+    static void getCorrespondingVoxels(
+            cube &cube, std::vector<Voxel>& container);
 
     template <unsigned int dim, Level level>
     /**

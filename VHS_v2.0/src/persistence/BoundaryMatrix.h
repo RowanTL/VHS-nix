@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -114,6 +114,15 @@ public:
      * @param colIndex Column index.
      */
     void finalize(index colIndex);
+
+    /**
+     * @brief Empties given column in both matrices.
+     * Carefull: enventually invalidates the inverse matrix;
+     * it works in our context, because we are only clearing columns
+     * we know are not needed.
+     * @param colIndex Column index.
+     */
+    void clearColumn(index colIndex);
 
 private:
     boundary_matrix_type _boundaryMatrix;        ///< Boundary matrix.

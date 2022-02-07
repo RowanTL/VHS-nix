@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -29,9 +29,12 @@
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
+#include <iostream>
 
 #include "shape/BaseShape.h"
 #include "shape/ConnectedComponents.h"
+#include "shape/VoxelSkeletonIterators.h"
+#include "shape/ShapeUtilities.h"
 #include "util/Point.h"
 
 namespace shape_simplification{ namespace shape {
@@ -50,14 +53,10 @@ template <class Shape, class Voxel>
 class AugmentedShape : public Shape {
 public:
     using voxel_container = typename Shape::voxel_container;
-    using voxel_iterator = typename Shape::voxel_iterator;
+    template <Level level = NEIGHBORHOOD>
+    using voxel_iterator = typename Shape::template voxel_iterator<level>;
     using collar_container = std::unordered_set<Voxel>;
     using collar_iterator = typename std::unordered_set<Voxel>::iterator;
-    using Level = typename Shape::Level;
-    using Shape::CORE;
-    using Shape::MAIN_SHAPE;
-    using Shape::NEIGHBORHOOD;
-    using Shape::OUTSIDE;
     template <Level level>
     using neighbor_iterator =
         typename Shape::template neighbor_iterator<level>;
@@ -80,10 +79,9 @@ public:
     /**
      * @brief Constructor.
      * @param voxels Vector of voxels to be inside the shape.
-     * @param minLevels The minimal level a voxel has to be inserted to.
-     * The corresponding voxel is the one with same index in @p voxels.
+     * The voxels' level has to be correctly setted.
      */
-    AugmentedShape(std::vector<Voxel> &voxels, std::vector<Level> &minLevels);
+    AugmentedShape(std::vector<Voxel> &voxels);
     /**
      * @brief Constructor.
      * @param shape Shape to use as base.
@@ -181,7 +179,8 @@ public:
 
     template<unsigned int dim>
     /**
-     * @brief Returns the number of dual cells of the shape in the given dimension.
+     * @brief Returns the number of dual cells of the shape in the given
+     * dimension.
      * @tparam dim Dimension of the cells.
      * @return The number of dual cells of the shape in dimension @p dim.
      */
@@ -203,14 +202,14 @@ private:
     std::array<long long, 4> _numberOfCells;    ///< Number of cells in dual skeleton of the shape.
 
     /**
-     * @brief Updates the connected components after a voxel was added into the
-     * shape.
+     * @brief Updates the connected components after a voxel was added into
+     * the shape.
      * @param v Added voxel.
      */
     void _updateComponentsAfterAddingVoxel(Voxel v);
     /**
-     * @brief Updates the connected components after a voxel was removed from the
-     * shape.
+     * @brief Updates the connected components after a voxel was removed from
+     * the shape.
      * @param v Removed voxel.
      */
     void _updateComponentsAfterRemovingVoxel(Voxel v);

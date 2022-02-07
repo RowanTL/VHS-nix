@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -108,6 +108,14 @@ inline int
 BaseSkeleton<Shape, Voxel, minDim, maxDim>::getEulerCharacteristic() const {
     return _nberOfCellsInMainShape[0] - _nberOfCellsInMainShape[1] +
             _nberOfCellsInMainShape[2] - _nberOfCellsInMainShape[3];
+}
+
+template <class Shape, class Voxel,
+          unsigned int minDim, unsigned int maxDim>
+inline const CellContainer&
+BaseSkeleton<Shape, Voxel, minDim, maxDim>::getCellContainer() const
+{
+    return _cells;
 }
 
 template <class Shape, class Voxel,

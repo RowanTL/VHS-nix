@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -57,12 +57,16 @@ public:
     void load(std::string baseFilename, unsigned int numberOfImages);
 
     /**
+     * @brief Loads the given set of PNG images.
+     * @param images Ordered vector of the images to load.
+     */
+    void load(std::vector<png::image<png::gray_pixel> > &images);
+
+    /**
      * @brief Saves this stack of images as PNG images.
      * @param baseFilename Path to directory, where the files should be saved.
-     * @param numberOfImages The number of images to be saved
-     * (max. the number of stacks).
      */
-    void save(std::string baseFilename, unsigned int numberOfImages);
+    void save(std::string baseFilename);
 
     /**
      * @brief Removes all loaded images from the stack.
@@ -76,8 +80,29 @@ public:
      * @param z Z coordinate of the voxel (i.e., layer number in stack).
      * @return The level value of the given voxel.
      */
-    virtual unsigned char getLevel(unsigned int x, unsigned int y,
+    virtual unsigned char getLevel(unsigned int x,
+                                   unsigned int y,
                                    unsigned int z) const = 0;
+
+    /**
+     * @brief Sets pixel value for given coordinates.
+     * @param X coordinate of the pixel.
+     * @param y Y coordinate of the pixel.
+     * @param z Z coordinate of the pixel (i.e., layer number in stack).
+     */
+    void setValue(unsigned char value,
+                  unsigned int x,
+                  unsigned int y,
+                  unsigned int z);
+
+    /**
+     * @brief Adds additional empty image layer add the end of the stack.
+     */
+    void addEmptyLayer();
+    /**
+     * @brief Removes the layer at the end of the stack.
+     */
+    void removeTopLayer();
 
     /**
      * @brief Returns the dimensions of the image stack.
@@ -85,14 +110,51 @@ public:
      */
     const std::array<unsigned int, 3> &getDimensions() const;
 
+    /**
+     * @brief Returns core threshold.
+     * @return Core threshold.
+     */
     unsigned char getCoreThreshold() const;
+    /**
+     * @brief Sets core threshold.
+     * @param value New value.
+     */
     void setCoreThreshold(unsigned char value);
 
+    /**
+     * @brief Returns shape threshold.
+     * @return Shape threshold.
+     */
     unsigned char getShapeThreshold() const;
+    /**
+     * @brief Sets shape threshold.
+     * @param value New value.
+     */
     void setShapeThreshold(unsigned char value);
 
+    /**
+     * @brief Returns neighborhood threshold.
+     * @return Neighborhood threshold.
+     */
     unsigned char getNeighborhoodThreshold() const;
+    /**
+     * @brief Sets neighborhood threshold.
+     * @param value New value.
+     */
     void setNeighborhoodThreshold(unsigned char value);
+
+    /**
+     * @brief Tests if the given voxel is within the dimensions
+     * of the image stack.
+     * @param x X-coordinate of the voxel.
+     * @param y Y-coordinate of the voxel.
+     * @param z Z-coordinate of the voxel.
+     * @return True if the voxel is within the dimensions,
+     * false otherwise.
+     */
+    bool isWithinBounds(unsigned int x,
+                        unsigned int y,
+                        unsigned int z);
 
 protected:
     /**
@@ -102,7 +164,8 @@ protected:
      * @param z Z coordinate of the pixel (i.e., layer number in stack).
      * @return The grayscale value of the given pixel.
      */
-    unsigned char getValue(unsigned int x, unsigned int y, unsigned int z) const;
+    unsigned char getValue(
+            unsigned int x, unsigned int y, unsigned int z) const;
 
     /**
      * @brief Sets the dimensions of the image stack.
@@ -117,9 +180,9 @@ protected:
 private:
     std::vector<png::image<png::gray_pixel>> _stack;    ///< Image stack.
     std::array<unsigned int, 3> _dim;                   ///< Dimensions of the stack: [x,y,z].
-    unsigned char _coreThreshold;                        ///< Core Threshold.
-    unsigned char _shapeThreshold;                       ///< Shape Threshold.
-    unsigned char _neighborhoodThreshold;                ///< Neighborhood Threshold.
+    unsigned char _coreThreshold;                       ///< Core Threshold.
+    unsigned char _shapeThreshold;                      ///< Shape Threshold.
+    unsigned char _neighborhoodThreshold;               ///< Neighborhood Threshold.
 };
 
 }} // namespace shape_simplification::util

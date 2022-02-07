@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -29,6 +29,7 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
+#include <cmath>
 
 #include "persistence/BoundaryMatrix.h"
 #include "shape/Cell.h"
@@ -104,8 +105,7 @@ public:
 
 private:
     BoundaryMatrix _matrix;                             ///< Boundary matrix.
-    std::vector<persistent_pair> _pairs;                ///< Persistence pairs, after matrix
-                                                        ///< reduction.
+    std::vector<persistent_pair> _pairs;                ///< Persistence pairs, after matrix reduction.
     std::vector<timestamp_type> _indexToTimestamp;      ///< Map from column index to timestamp.
     std::vector<std::vector<Voxel> > _indexToVoxels;    ///< Map from column index to corresponding
                                                         ///< voxels in the shape.
@@ -137,7 +137,7 @@ private:
     void _addVertexColumns(
             cell_iterator<0> &cellIt,
             cell_iterator<0> &endIt,
-            int timestamp,
+            unsigned int timestamp,
             index &current,
             std::unordered_map<Cell<0>,index,Cell<0>::CellHasher> &cellToIndex,
             Skeleton &skeleton);
@@ -156,11 +156,13 @@ private:
     void
     _addColumns(cell_iterator<dim> &cellIt,
                 cell_iterator<dim> &endIt,
-                int timestamp,
+                unsigned int timestamp,
                 index &current,
-                std::unordered_map<Cell<dim>,index,typename Cell<dim>::CellHasher>
+                std::unordered_map<
+                        Cell<dim>,index,typename Cell<dim>::CellHasher>
                     &cellToIndex,
-                std::unordered_map<Cell<dim - 1>,index,typename Cell<dim - 1>::CellHasher>
+                std::unordered_map<
+                        Cell<dim-1>,index,typename Cell<dim - 1>::CellHasher>
                     &boundaryCellToIndex,
                 Skeleton &skeleton);
 };

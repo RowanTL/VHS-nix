@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -28,18 +28,18 @@
 using namespace shape_simplification::shape;
 
 template <class Shape, class Voxel>
-AugmentedShape<Shape, Voxel>::AugmentedShape() : Shape() {}
+AugmentedShape<Shape, Voxel>::AugmentedShape() : Shape(),
+    _collarModifiedSinceLastCompUpdate(false), _numberOfCells{0, 0, 0, 0} {}
 
 template <class Shape, class Voxel>
-AugmentedShape<Shape, Voxel>::AugmentedShape(std::vector<Voxel> &voxels,
-                                             std::vector<Level> &minLevels)
-    : BaseShape<Voxel>(voxels, minLevels), Shape(voxels, minLevels),
+AugmentedShape<Shape, Voxel>::AugmentedShape(std::vector<Voxel> &voxels)
+    : BaseShape<Voxel>(voxels), Shape(voxels),
       _collarModifiedSinceLastCompUpdate(false), _numberOfCells{0, 0, 0, 0}
 {
     for (typename std::vector<Voxel>::size_type i = 0; i < voxels.size(); ++i) {
         Voxel v = voxels.at(i);
-        if ((minLevels.at(i) == CORE || minLevels.at(i) == MAIN_SHAPE)
-                && !_components.contains(v)) {
+        Level l = v.getLevel();
+        if ((l == CORE || l == MAIN_SHAPE) && !_components.contains(v)) {
             _updateComponentsAfterAddingVoxel(v);
             _updateCollarAfterAddingVoxel(v);
             _updateNumberOfCellsAfterAddingVoxel(v);
@@ -66,10 +66,12 @@ AugmentedShape<Shape, Voxel>::AugmentedShape(Shape &shape)
 }
 
 template <class Shape, class Voxel>
-template <typename AugmentedShape<Shape, Voxel>::Level minLevel>
-void AugmentedShape<Shape, Voxel>::addVoxel(Voxel v) {
+template <Level minLevel>
+void AugmentedShape<Shape, Voxel>::addVoxel(Voxel v)
+{
     static_assert(Shape::isAddable(), "Insertion of voxel not enabled.");
 
+    v.setLevel(minLevel);
     Shape::template addVoxel<minLevel>(v);
 
     if constexpr (minLevel == CORE || minLevel == MAIN_SHAPE){
@@ -82,11 +84,15 @@ void AugmentedShape<Shape, Voxel>::addVoxel(Voxel v) {
 }
 
 template <class Shape, class Voxel>
-template <typename AugmentedShape<Shape, Voxel>::Level maxLevel>
-void AugmentedShape<Shape, Voxel>::removeVoxel(Voxel v) {
+template <Level maxLevel>
+void AugmentedShape<Shape, Voxel>::removeVoxel(Voxel v)
+{
     static_assert(Shape::isRemovable(), "Removal of voxel not enabled.");
 
     Shape::template removeVoxel<maxLevel>(v);
+
+    if constexpr (maxLevel == NEIGHBORHOOD) v.setLevel(OUTSIDE);
+    if constexpr (maxLevel == MAIN_SHAPE) v.setLevel(NEIGHBORHOOD);
 
     if constexpr (maxLevel == NEIGHBORHOOD || maxLevel == MAIN_SHAPE){
         if (_components.contains(v)) {
@@ -99,11 +105,13 @@ void AugmentedShape<Shape, Voxel>::removeVoxel(Voxel v) {
 
 template <class Shape, class Voxel>
 inline int AugmentedShape<Shape, Voxel>::getEulerCharacteristic() {
-    return _numberOfCells[0] - _numberOfCells[1] + _numberOfCells[2] - _numberOfCells[3];
+    return _numberOfCells[0] - _numberOfCells[1]
+            + _numberOfCells[2] - _numberOfCells[3];
 }
 
 template <class Shape, class Voxel>
-inline unsigned int AugmentedShape<Shape, Voxel>::getNumberOfComponents() const {
+inline unsigned int AugmentedShape<Shape, Voxel>::getNumberOfComponents() const
+{
     return _components.size();
 }
 
@@ -121,34 +129,41 @@ inline unsigned int AugmentedShape<Shape, Voxel>::getNumberOfVoids() {
 }
 
 template <class Shape, class Voxel>
-inline Voxel AugmentedShape<Shape, Voxel>::getComponentRepresentative(Voxel v) {
+inline Voxel AugmentedShape<Shape, Voxel>::getComponentRepresentative(Voxel v)
+{
     return _components.find(v);
 }
 
 template <class Shape, class Voxel>
-inline unsigned long long int AugmentedShape<Shape, Voxel>::getComponentSize(Voxel v){
+inline unsigned long long int
+AugmentedShape<Shape, Voxel>::getComponentSize(Voxel v){
     static_assert(Shape::isRemovable(), "Removal of voxel not enabled.");
     return _components.getComponentSize(v);
 }
 
 template <class Shape, class Voxel>
-inline void AugmentedShape<Shape, Voxel>::getComponent(Voxel v, std::vector<Voxel> &container){
+inline void AugmentedShape<Shape, Voxel>::getComponent(
+        Voxel v, std::vector<Voxel> &container)
+{
     static_assert(Shape::isRemovable(), "Removal of voxel not enabled.");
     return _components.getComponent(v, container);
 }
 
 template <class Shape, class Voxel>
-bool AugmentedShape<Shape, Voxel>::isInCoreComponent(Voxel v){
+bool AugmentedShape<Shape, Voxel>::isInCoreComponent(Voxel v)
+{
     static_assert(Shape::isRemovable(), "Removal of voxel not enabled.");
+
+    if (v.getLevel() == NEIGHBORHOOD) return false;
 
     typename CCR::component_iterator it = _components.begin(v);
     typename CCR::component_iterator end = _components.end(v);
 
-    while (it != end && !(Shape::template contains<CORE>(*it))) {
+    while (it != end && (*it).getLevel() != CORE) {
         it++;
     }
 
-    if (it == end && Shape::template contains<CORE>(*it)) return true;
+    if (it == end && (*it).getLevel() == CORE) return true;
     return it != end;
 }
 
@@ -183,11 +198,13 @@ void AugmentedShape<Shape, Voxel>::clear(){
 }
 
 template <class Shape, class Voxel>
-void AugmentedShape<Shape, Voxel>::_updateComponentsAfterAddingVoxel(Voxel v) {
+void AugmentedShape<Shape, Voxel>::_updateComponentsAfterAddingVoxel(Voxel v)
+{
+    int x, y, z;
     _components.initialize(v);
     for (neighbor_iterator<MAIN_SHAPE> it(v, *this); !it.isEnd(); it.next()) {
-        Voxel cur = it.getCurrentValue();
-        _components.merge(v, cur);
+        it.getCurrentValue(x, y, z);
+        _components.merge(v, Voxel(x,y,z));
     }
 }
 
@@ -198,27 +215,40 @@ inline void AugmentedShape<Shape, Voxel>::_updateComponentsAfterRemovingVoxel(
 }
 
 template <class Shape, class Voxel>
-void AugmentedShape<Shape, Voxel>::_updateCollarAfterAddingVoxel(Voxel v) {
+void AugmentedShape<Shape, Voxel>::_updateCollarAfterAddingVoxel(Voxel v)
+{
+    int x, y, z;
     _collar.erase(v);
     for (ExtendedNeighborsIterator<Voxel> it(v); !it.isEnd(); it.next()) {
-        Voxel cur = it.getCurrentValue();
-        if (!(Shape::template contains<MAIN_SHAPE>(cur)))
-            _collar.insert(cur);
+        it.getCurrentValue(x, y, z);
+        if (!(Shape::template contains<MAIN_SHAPE>(x, y, z))){
+            Voxel c(x, y, z);
+            if (Shape::template contains<EX_NEIGHBORHOOD>(x, y, z))
+                c.setLevel(NEIGHBORHOOD);
+            else
+                c.setLevel(OUTSIDE);
+            _collar.insert(c);
+        }
     }
     _collarModifiedSinceLastCompUpdate = true;
 }
 
 template <class Shape, class Voxel>
-void AugmentedShape<Shape, Voxel>::_updateCollarAfterRemovingVoxel(Voxel v) {
+void AugmentedShape<Shape, Voxel>::_updateCollarAfterRemovingVoxel(Voxel v)
+{
     bool toAdd = false;
+    int x, y, z;
     for (ExtendedNeighborsIterator<Voxel> it(v); !it.isEnd(); it.next()) {
-        Voxel cur = it.getCurrentValue();
-        if (Shape::template contains<MAIN_SHAPE>(cur)) toAdd = true;
+        it.getCurrentValue(x, y, z);
+        Voxel cur(x, y, z);
+        if (Shape::template contains<MAIN_SHAPE>(x, y, z)) toAdd = true;
         else if (_collar.find(cur) != _collar.end()){
             ExtendedNeighborsIterator<Voxel> nIt(cur);
+            nIt.getCurrentValue(x, y, z);
             while (!nIt.isEnd() &&
-                   !(Shape::template contains<MAIN_SHAPE>(nIt.getCurrentValue()))) {
+                   !(Shape::template contains<MAIN_SHAPE>(x, y, z))) {
                 nIt.next();
+                nIt.getCurrentValue(x, y, z);
             }
             if (nIt.isEnd()){
                 _collar.erase(cur);
@@ -232,12 +262,15 @@ void AugmentedShape<Shape, Voxel>::_updateCollarAfterRemovingVoxel(Voxel v) {
 template <class Shape, class Voxel>
 bool AugmentedShape<Shape, Voxel>::_isRealCollarVoxel(Voxel v){
     if (!isInCollar(v)) return false;
+    int x, y, z;
 
     ExtendedNeighborsIterator<Voxel> it(v);
+    it.getCurrentValue(x, y, z);
     while (!it.isEnd() &&
-           !Shape::template contains<MAIN_SHAPE>(it.getCurrentValue()))
+           !Shape::template contains<MAIN_SHAPE>(x, y, z))
     {
         it.next();
+        if (!it.isEnd()) it.getCurrentValue(x, y, z);
     }
     if (it.isEnd()) return false;
     return true;
@@ -260,12 +293,14 @@ void AugmentedShape<Shape, Voxel>::_updateCollarComponents() {
 
 template <class Shape, class Voxel>
 void AugmentedShape<Shape, Voxel>::_updateCollarComponentsFindCollarComponent(
-        CC &collarComponents) {
+        CC &collarComponents)
+{
+    int x, y, z;
     for (Voxel v : _collar) {
         collarComponents.initialize(v);
         for (ExtendedNeighborsIterator<Voxel> it(v); !it.isEnd(); it.next()) {
-            Voxel cur = it.getCurrentValue();
-            collarComponents.merge(v, cur);
+            it.getCurrentValue(x, y, z);
+            collarComponents.merge(v, Voxel(x, y, z));
         }
     }
 }
@@ -288,7 +323,10 @@ template <class Shape, class Voxel>
 void AugmentedShape<Shape, Voxel>::
 _updateCollarComponentsMergeSameVoidComponents(
         CC &collarComponents,
-        std::unordered_map<Voxel,Voxel>& componentRep) {
+        std::unordered_map<Voxel,Voxel>& componentRep)
+{
+    int x, y, z;
+
     for (auto iter : componentRep) {
         Voxel v = iter.second;
         Point p = {v[0], v[1], v[2]};
@@ -299,12 +337,13 @@ _updateCollarComponentsMergeSameVoidComponents(
                 p[i]++;
                 Voxel cur(p);
                 if (!collarComponents.contains(cur) &&
-                        !(Shape::template contains<MAIN_SHAPE>(cur))) {
+                      !(Shape::template contains<MAIN_SHAPE>(p[0], p[1], p[2])))
+                {
                     collarComponents.initialize(cur);
                     for (ExtendedNeighborsIterator<Voxel> it(cur); !it.isEnd();
                          it.next()) {
-                        Voxel n = it.getCurrentValue();
-                        collarComponents.merge(cur, n);
+                        it.getCurrentValue(x, y, z);
+                        collarComponents.merge(cur, Voxel(x, y, z));
                     }
                 } else {
                     done = true;
@@ -315,7 +354,8 @@ _updateCollarComponentsMergeSameVoidComponents(
 }
 
 template <class Shape, class Voxel>
-void AugmentedShape<Shape, Voxel>::_updateNumberOfCellsAfterAddingVoxel(Voxel v){
+void AugmentedShape<Shape,Voxel>::_updateNumberOfCellsAfterAddingVoxel(Voxel v)
+{
     _numberOfCells[0]++;
     _numberOfCells[1] += _getNberOfGeneratedEdges(v);
     _numberOfCells[2] += _getNberOfGeneratedSquares(v);
@@ -323,7 +363,8 @@ void AugmentedShape<Shape, Voxel>::_updateNumberOfCellsAfterAddingVoxel(Voxel v)
 }
 
 template <class Shape, class Voxel>
-void AugmentedShape<Shape, Voxel>::_updateNumberOfCellsAfterRemovingVoxel(Voxel v){
+void AugmentedShape<Shape,Voxel>::_updateNumberOfCellsAfterRemovingVoxel(Voxel v)
+{
     _numberOfCells[0]--;
     _numberOfCells[1] -= _getNberOfGeneratedEdges(v);
     _numberOfCells[2] -= _getNberOfGeneratedSquares(v);
@@ -333,10 +374,11 @@ void AugmentedShape<Shape, Voxel>::_updateNumberOfCellsAfterRemovingVoxel(Voxel 
 template <class Shape, class Voxel>
 int AugmentedShape<Shape, Voxel>::_getNberOfGeneratedEdges(Voxel v){
     int edges = 0;
+    int x, y, z;
     for (NeighborsIterator<Voxel> it(v); !it.isEnd(); it.next()){
-        Voxel cur = it.getCurrentValue();
-        if (_components.contains(cur) &&
-                Shape::template contains<MAIN_SHAPE>(cur))
+        it.getCurrentValue(x, y, z);
+        if (_components.contains(Voxel(x, y, z)) &&
+                Shape::template contains<MAIN_SHAPE>(x, y, z))
             edges++;
     }
     return edges;
@@ -352,7 +394,8 @@ int AugmentedShape<Shape, Voxel>::_getNberOfGeneratedSquares(Voxel v){
         while (coorIt != coordinates.end() &&
                ((cur[0] == v[0] && cur[1] == v[1] && cur[2] == v[2]) ||
                 (_components.contains(Voxel(cur)) &&
-                 Shape::template contains<MAIN_SHAPE>(Voxel(cur))))){
+                 Shape::template contains<MAIN_SHAPE>(cur[0], cur[1], cur[2]))))
+        {
             coorIt++;
             cur = *coorIt;
         }
@@ -371,7 +414,8 @@ int AugmentedShape<Shape, Voxel>::_getNberOfGeneratedCubes(Voxel v){
         while (coorIt != coordinates.end() &&
                ((cur[0] == v[0] && cur[1] == v[1] && cur[2] == v[2]) ||
                 (_components.contains(Voxel(cur)) &&
-                 Shape::template contains<MAIN_SHAPE>(Voxel(cur))))){
+                 Shape::template contains<MAIN_SHAPE>(cur[0], cur[1], cur[2]))))
+        {
             coorIt++;
             cur = *coorIt;
         }

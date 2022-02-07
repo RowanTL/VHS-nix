@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -44,8 +44,10 @@ void displayUsage()
     std::cout << "Lexis:\n";
     std::cout << "* nberim: number of images to process.\n";
     std::cout << "* in_fp: name prefix of the input images, if existing. \n"
-                 "  E.g. \"flower_\" if the files are named \"flower_xxxx.png\", \n"
-                 "  where xxxx has to be the numbering of the images with 4 digits.\n";
+                 "  E.g. \"flower_\" if the files are named \"flower_xxxx.png\""
+                 ", \n"
+                 "  where xxxx has to be the numbering of the images"
+                 " with 4 digits.\n";
     std::cout << "* in_dp: directory path where the input images are stored.\n";
     std::cout << "* tc: grayscale threshold value for the core.\n"
                  "  Default value: 200.\n";

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -53,6 +53,22 @@ public:
      * @brief Clears the content of the structure.
      */
     void clear();
+
+    /**
+     * @brief Returns all current representatives for each connected component.
+     * @param rep Empty container to store the representatives.
+     * @param minSize Minimum size a connected component should have.
+     * If a component is smaller, its representative is skipped and not
+     * stored in the result.
+     */
+    void getRepresentatives(std::unordered_set<Voxel>& rep, int minSize = 1);
+
+    /**
+     * @brief Returns all connected components.
+     * @param components Empty container to store all connected components
+     * as vectors.
+     */
+    void getComponents(std::vector<std::vector<Voxel> >& components);
 
 private:
 };

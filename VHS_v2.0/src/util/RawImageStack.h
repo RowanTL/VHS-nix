@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -65,7 +65,8 @@ public:
      * @param z Z coordinate of the voxel (i.e., layer number in stack).
      * @return The level value of the given voxel.
      */
-    unsigned char getLevel(unsigned int x, unsigned int y, unsigned int z) const;
+    unsigned char getLevel(
+            unsigned int x, unsigned int y, unsigned int z) const;
 
 private:
     unsigned int _downsampling;   ///< Downsampling ratio.

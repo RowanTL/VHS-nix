@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -34,7 +34,13 @@ Voxel::Voxel() : PackedData(0) {}
 Voxel::Voxel(int x, int y, int z)
     : PackedData((static_cast<uint64_t>(z) << _coordShift * 2) +
                  (static_cast<uint64_t>(y) << _coordShift) +
-                 static_cast<uint64_t>(x))
+                 static_cast<uint64_t>(x)), _level(NOT_SPECIFIED)
+{}
+
+Voxel::Voxel(int x, int y, int z, Level level)
+    : PackedData((static_cast<uint64_t>(z) << _coordShift * 2) +
+                 (static_cast<uint64_t>(y) << _coordShift) +
+                 static_cast<uint64_t>(x)), _level(level)
 {}
 
 Voxel::Voxel(const std::array<int, 3> &coordinates)
@@ -42,7 +48,15 @@ Voxel::Voxel(const std::array<int, 3> &coordinates)
           (static_cast<uint64_t>(coordinates[2]) << _coordShift * 2) +
           (static_cast<uint64_t>(coordinates[1]) << _coordShift) +
           static_cast<uint64_t>(coordinates[0])
-    )
+    ), _level(NOT_SPECIFIED)
+{}
+
+Voxel::Voxel(const std::array<int, 3> &coordinates, Level level)
+    : PackedData(
+          (static_cast<uint64_t>(coordinates[2]) << _coordShift * 2) +
+          (static_cast<uint64_t>(coordinates[1]) << _coordShift) +
+          static_cast<uint64_t>(coordinates[0])
+    ), _level(level)
 {}
 
 int Voxel::operator[](int i) const {
@@ -55,8 +69,20 @@ int Voxel::getMaxCoordinateValue(){
     return _maxCoordSize;
 }
 
+Level Voxel::getLevel() const
+{
+    return _level;
+}
+
+void Voxel::setLevel(const Level &level)
+{
+    _level = level;
+}
+
 std::ostream &operator<<(std::ostream &outputStream, Voxel voxel) {
-    outputStream << "(" << voxel[0] << ", " << voxel[1] << ", " << voxel[2] << ")";
+    outputStream << "(" << voxel[0] << ", "
+                 << voxel[1] << ", "
+                 << voxel[2] << ")";
     return outputStream;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -33,11 +33,18 @@
 #include "png.hpp"
 
 #include "shape/Voxel.h"
+#include "shape/ShapeUtilities.h"
 #include "util/BaseImageStack.h"
 
 namespace shape_simplification{ namespace util {
 
 using shape_simplification::shape::Voxel;
+using shape_simplification::shape::Level;
+using shape_simplification::shape::CORE;
+using shape_simplification::shape::MAIN_SHAPE;
+using shape_simplification::shape::NEIGHBORHOOD;
+using shape_simplification::shape::EX_MAIN_SHAPE;
+using shape_simplification::shape::EX_NEIGHBORHOOD;
 
 template <class Shape>
 /**
@@ -54,11 +61,11 @@ void operator>>(BaseImageStack &inputImages, Shape &shape) {
             for (unsigned int x = 0; x < dimensions[0]; x++) {
                 unsigned char level = inputImages.getLevel(x, y, z);
                 if (level >= inputImages.getCoreThreshold()) {
-                    shape.template addVoxel<Shape::CORE>(Voxel(x, y, z));
+                    shape.template addVoxel<CORE>(Voxel(x, y, z));
                 } else if (level >= inputImages.getShapeThreshold()) {
-                    shape.template addVoxel<Shape::MAIN_SHAPE>(Voxel(x, y, z));
+                    shape.template addVoxel<MAIN_SHAPE>(Voxel(x, y, z));
                 } else if (level >= inputImages.getNeighborhoodThreshold()) {
-                    shape.template addVoxel<Shape::NEIGHBORHOOD>(Voxel(x, y, z));
+                    shape.template addVoxel<NEIGHBORHOOD>(Voxel(x, y, z));
                 }
             }
         }
@@ -88,23 +95,17 @@ void operator<<(std::string baseFilename, Shape &shape) {
         filename += std::to_string(i) + ".png";
 
         png::image<png::gray_pixel> image(dimensions[0], dimensions[1]);
-        unsigned int p[3] = {0, 0, i};
-        for (p[1] = 0; p[1] < dimensions[1]; p[1]++)
-            for (p[0] = 0; p[0] < dimensions[0]; p[0]++) {
-                if (shape.template contains<Shape::CORE>(
-                            Voxel(p[0], p[1], p[2]))
-                        )
-                    image[p[1]][p[0]] = static_cast<png::gray_pixel>(200);
-                else if (shape.template contains<Shape::MAIN_SHAPE>(
-                             Voxel(p[0], p[1], p[2]))
-                         )
-                    image[p[1]][p[0]] = static_cast<png::gray_pixel>(150);
-                else if (shape.template contains<Shape::NEIGHBORHOOD>(
-                             Voxel(p[0], p[1], p[2]))
-                         )
-                    image[p[1]][p[0]] = static_cast<png::gray_pixel>(100);
+        unsigned int z = i;
+        for (unsigned int y = 0; y < dimensions[1]; y++)
+            for (unsigned int x = 0; x < dimensions[0]; x++) {
+                if (shape.template contains<CORE>(x, y, z))
+                    image[y][x] = static_cast<png::gray_pixel>(200);
+                else if (shape.template contains<EX_MAIN_SHAPE>(x, y, z))
+                    image[y][x] = static_cast<png::gray_pixel>(150);
+                else if (shape.template contains<EX_NEIGHBORHOOD>(x, y, z))
+                    image[y][x] = static_cast<png::gray_pixel>(100);
                 else
-                    image[p[1]][p[0]] = static_cast<png::gray_pixel>(0);
+                    image[y][x] = static_cast<png::gray_pixel>(0);
             }
 
         image.write(filename);

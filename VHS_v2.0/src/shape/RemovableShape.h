@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -27,7 +27,8 @@
 
 #include <vector>
 
-#include "BaseShape.h"
+#include "shape/BaseShape.h"
+#include "shape/ShapeUtilities.h"
 
 namespace shape_simplification{ namespace shape {
 
@@ -41,11 +42,6 @@ template <class Voxel>
  **/
 class RemovableShape : virtual public BaseShape<Voxel> {
 public:
-    using typename BaseShape<Voxel>::Level;
-    using BaseShape<Voxel>::CORE;
-    using BaseShape<Voxel>::MAIN_SHAPE;
-    using BaseShape<Voxel>::NEIGHBORHOOD;
-    using BaseShape<Voxel>::OUTSIDE;
     template <Level level>
     using neighbor_iterator =
         typename BaseShape<Voxel>::template neighbor_iterator<level>;
@@ -64,11 +60,11 @@ public:
      * @param minLevels The minimal level a voxel has to be inserted to.
      * The corresponding voxel is the one with same index in @p voxels.
      */
-    RemovableShape(std::vector<Voxel> &voxels, std::vector<Level> &minLevels);
+    RemovableShape(std::vector<Voxel> &voxels);
 
     /**
-     * @brief Test if the class has the property to remove voxels from the shape
-     * after instanciation.
+     * @brief Test if the class has the property to remove voxels from the
+     * shape after instanciation.
      * @return True.
      */
     static constexpr bool isRemovable();

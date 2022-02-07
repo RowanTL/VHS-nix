@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -29,6 +29,7 @@
 #include <cmath>
 
 #include "shape/RestrictedShapeCopy.h"
+#include "shape/ShapeUtilities.h"
 #include "util/Point.h"
 
 namespace shape_simplification{ namespace shape {
@@ -46,13 +47,10 @@ template <class Shape, class Voxel>
  **/
 class ClosedRestrictedShapeCopy : public RestrictedShapeCopy<Shape,Voxel> {
 public:
-    using Level = typename RestrictedShapeCopy<Shape,Voxel>::Level;
-    using RestrictedShapeCopy<Shape,Voxel>::CORE;
-    using RestrictedShapeCopy<Shape,Voxel>::MAIN_SHAPE;
-    using RestrictedShapeCopy<Shape,Voxel>::NEIGHBORHOOD;
-    using RestrictedShapeCopy<Shape,Voxel>::OUTSIDE;
+    template <Level level = NEIGHBORHOOD>
     using voxel_iterator =
-        typename RestrictedShapeCopy<Shape,Voxel>::voxel_iterator;
+        typename RestrictedShapeCopy<Shape,Voxel>::template
+            voxel_iterator<level>;
     template <Level level>
     using neighbor_iterator =
         typename BaseShape<Voxel>::template neighbor_iterator<level>;
@@ -68,7 +66,8 @@ public:
      * @param lowerBound Left bottom corner of the restricted area.
      * @param upperBound Right top corner of the restricted area.
      */
-    ClosedRestrictedShapeCopy(const Shape &shape, Point &lowerBound, Point &upperBound);
+    ClosedRestrictedShapeCopy(
+            const Shape &shape, Point &lowerBound, Point &upperBound);
 
 private:
     /**

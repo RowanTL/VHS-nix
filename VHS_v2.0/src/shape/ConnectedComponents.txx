@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -34,6 +34,21 @@ ConnectedComponents<Voxel>::ConnectedComponents() : UnionFind<Voxel>() {}
 template <class Voxel>
 void ConnectedComponents<Voxel>::clear(){
     UnionFind<Voxel>::clear();
+}
+
+template <class Voxel>
+void ConnectedComponents<Voxel>::getRepresentatives(
+        std::unordered_set<Voxel> &rep,
+        int minSize)
+{
+    UnionFind<Voxel>::getRoots(rep, minSize);
+}
+
+template <class Voxel>
+void ConnectedComponents<Voxel>::getComponents(
+        std::vector<std::vector<Voxel> >& components)
+{
+    UnionFind<Voxel>::getSets(components);
 }
 
 template <class Voxel>

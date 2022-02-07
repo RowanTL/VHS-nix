@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -31,29 +31,63 @@ template <class Voxel>
 AddableShape<Voxel>::AddableShape() : BaseShape<Voxel>() {}
 
 template <class Voxel>
-AddableShape<Voxel>::AddableShape(std::vector<Voxel> &voxels,
-                                  std::vector<Level> &minLevels)
-    : BaseShape<Voxel>(voxels, minLevels) {}
+AddableShape<Voxel>::AddableShape(std::vector<Voxel> &voxels)
+    : BaseShape<Voxel>(voxels) {}
 
 template <class Voxel>
-constexpr bool AddableShape<Voxel>::isAddable() {
+constexpr bool AddableShape<Voxel>::isAddable()
+{
     return true;
 }
 
 template <class Voxel>
-template <typename AddableShape<Voxel>::Level minLevel>
-void AddableShape<Voxel>::addVoxel(Voxel v) {
+template <Level minLevel>
+void AddableShape<Voxel>::addVoxel(Voxel v)
+{
     std::array<voxel_container, 3> &voxels = BaseShape<Voxel>::_getVoxels();
+    typename voxel_container::iterator it = voxels.at(0).find(v);
+    typename voxel_container::iterator it2 = voxels.at(1).find(v);
+    typename voxel_container::iterator it3 = voxels.at(2).find(v);
+
+    v.setLevel(minLevel);
+
     if constexpr (minLevel == CORE) {
+        if (it != voxels.at(0).end()) {
+            voxels.at(0).erase(it);
+            voxels.at(1).erase(it2);
+            voxels.at(2).erase(it3);
+        } else if (it2 != voxels.at(1).end()) {
+            voxels.at(1).erase(it2);
+            voxels.at(2).erase(it3);
+        } else if (it3 != voxels.at(2).end()) {
+            voxels.at(2).erase(it3);
+        }
+
         voxels.at(0).insert(v);
         voxels.at(1).insert(v);
         voxels.at(2).insert(v);
     } else if constexpr (minLevel == MAIN_SHAPE) {
-        voxels.at(1).insert(v);
-        voxels.at(2).insert(v);
+        if (it == voxels.at(0).end()){
+            if (it2 != voxels.at(1).end()) {
+                voxels.at(1).erase(it2);
+                voxels.at(2).erase(it3);
+            } else if (it3 != voxels.at(2).end()) {
+                voxels.at(2).erase(it3);
+            }
+
+            voxels.at(1).insert(v);
+            voxels.at(2).insert(v);
+        }
     } else if constexpr (minLevel == NEIGHBORHOOD) {
-        voxels.at(2).insert(v);
+        if (it == voxels.at(0).end() && it2 == voxels.at(1).end()){
+            if (it3 != voxels.at(2).end()) {
+                voxels.at(2).erase(it3);
+            }
+
+            voxels.at(2).insert(v);
+        }
     }
+
     std::array<unsigned int, 3> &dimensions = BaseShape<Voxel>::_getShapeDimensions();
     if (v[0] > dimensions[0])
         dimensions[0] = v[0];

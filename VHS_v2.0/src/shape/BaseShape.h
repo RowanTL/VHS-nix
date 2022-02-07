@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -29,7 +29,7 @@
 #include <vector>
 #include <unordered_set>
 
-#include "shape/VoxelSkeletonIterators.h"
+#include "shape/ShapeUtilities.h"
 
 namespace shape_simplification{ namespace shape {
 
@@ -42,15 +42,8 @@ template <class Voxel>
 class BaseShape {
 public:
     using voxel_container = std::unordered_set<Voxel>;
+    template <Level level = NEIGHBORHOOD>
     using voxel_iterator = typename voxel_container::const_iterator;
-
-    /// Enum class for the different levels in the shape.
-    enum Level {
-        CORE,         ///< Core of the shape.
-        MAIN_SHAPE,   ///< Shape to be simplified.
-        NEIGHBORHOOD, ///< Neighborhood of the shape.
-        OUTSIDE       ///< Outside of the shape.
-    };
 
     template <Level level>
     using neighbor_iterator =
@@ -66,21 +59,20 @@ public:
     /**
      * @brief Constructor.
      * @param voxels Vector of voxels to be inside the shape.
-     * @param minLevels The minimal level a voxel has to be inserted to.
-     * The corresponding voxel is the one with same index in @p voxels.
+     * The voxels' level has to be correctly setted.
      */
-    BaseShape(std::vector<Voxel> &voxels, std::vector<Level> &minLevels);
+    BaseShape(std::vector<Voxel> &voxels);
 
     /**
-     * @brief Test if the class has the property to add voxels to the shape after
-     * instanciation.
+     * @brief Test if the class has the property to add voxels to the shape
+     * after instanciation.
      * @return False.
      */
     static constexpr bool isAddable();
 
     /**
-     * @brief Test if the class has the property to remove voxels from the shape
-     * after instanciation.
+     * @brief Test if the class has the property to remove voxels from the
+     * shape after instanciation.
      * @return False.
      */
     static constexpr bool isRemovable();
@@ -104,33 +96,41 @@ public:
     /**
      * @brief Test if the shape contains a voxel at level @p level.
      * @tparam level Level to be tested.
-     * @param v Voxel to be tested.
-     * @return True if the shape contains @p v at level @p level, false otherwise.
+     * @param x X-coordinate of the voxel.
+     * @param y Y-coordinate of the voxel.
+     * @param z Z-coordinate of the voxel.
+     * @return True if the shape contains the given voxel at level @p level,
+     * false otherwise.
      */
-    template <Level level> bool contains(Voxel v) const;
-    bool containsOnlyInNeighborhood(Voxel v) const;
+    template <Level level = NEIGHBORHOOD>
+    bool contains(int x, int y, int z) const;
 
     /**
-     * @brief Returns an iterator at the start of the voxels contained at level @p
-     * level.
+     * @brief Returns an iterator at the start of the voxels contained at level
+     * @p level.
      * @tparam level Level of the voxels to iterate over.
      * @return Starting iterator for level @p level.
      */
-    template <Level level> voxel_iterator begin() const;
+    template <Level level = NEIGHBORHOOD>
+    voxel_iterator<level> begin() const;
 
     /**
-     * @brief Returns the end iterator of the voxels contained at level @p level.
+     * @brief Returns the end iterator of the voxels contained at level
+     * @p level.
      * @tparam level Level of the voxels to iterate over.
      * @return End iterator for level @p level.
      */
-    template <Level level> voxel_iterator end() const;
+    template <Level level = NEIGHBORHOOD>
+    voxel_iterator<level> end() const;
 
     /**
-     * @brief Returns the lowest level the voxel @p v is contained in.
-     * @param v Voxel for which the information is needed.
-     * @return The lowest level @p v is contained in.
+     * @brief Returns the lowest level the given voxel is contained in.
+     * @param x X-coordinate of the voxel.
+     * @param y Y-coordinate of the voxel.
+     * @param z Z-coordinate of the voxel.
+     * @return The lowest level the given voxel is contained in.
      */
-    Level getMinLevel(Voxel v);
+    Level getMinLevel(int x, int y, int z);
 
     /**
      * @brief Returns an array width all three maximal coordinate
@@ -161,6 +161,12 @@ public:
      * @brief Clears the shape.
      */
     void clear();
+
+    /**
+     * @brief Returns the number of voxel levels that are enabled.
+     * @return 3.
+     */
+    static constexpr unsigned int getNumberOfLevels();
 
 protected:
     /**

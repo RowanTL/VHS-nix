@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -23,1833 +23,550 @@
  * Test file for the Skeleton classes.
  **/
 
-#include <algorithm>
 #include <gtest/gtest.h>
-#include <random>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
-#include "shape/AddableShape.h"
-#include "shape/BaseShape.h"
-#include "shape/Cell.h"
-#include "shape/EditableShape.h"
-#include "shape/RemovableShape.h"
 #include "shape/DualSkeleton.h"
 #include "shape/PrimalSkeleton.h"
+#include "shape/VoxelSkeletonIterators.h"
 #include "shape/Voxel.h"
-#include "util/Point.h"
+#include "shape/EditableShape.h"
+#include "shape/ShapeUtilities.h"
 
 #include "test_examples.h"
 
-using shape_simplification::shape::AddableShape;
-using shape_simplification::shape::BaseShape;
-using shape_simplification::shape::Cell;
-using shape_simplification::shape::EditableShape;
-using shape_simplification::shape::RemovableShape;
 using shape_simplification::shape::DualSkeleton;
 using shape_simplification::shape::PrimalSkeleton;
+using shape_simplification::shape::VertexIterator;
+using shape_simplification::shape::EdgeIterator;
+using shape_simplification::shape::PositiveEdgeIterator;
+using shape_simplification::shape::SquareIterator;
+using shape_simplification::shape::PositiveSquareIterator;
+using shape_simplification::shape::CubeCoordinates;
+using shape_simplification::shape::DualEdgeIterator;
+using shape_simplification::shape::DualSquareIterator;
+using shape_simplification::shape::DualCubeIterator;
 using shape_simplification::shape::Voxel;
-using shape_simplification::util::Point;
+using shape_simplification::shape::EditableShape;
+using shape_simplification::shape::Level;
 
-template <class Shape, class Voxel>
-void verifySkeletonConstructor(std::string name);
-template <class Shape, class Skeleton, class Voxel>
-void verifyPrimalIterators(std::string name);
-template <class Skeleton, class Voxel>
-void verifyPrimalVertexIterator(Skeleton &skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyPrimalEdgeIterator(Skeleton &skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyPrimalSquareIterator(Skeleton &skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyPrimalCubeIterator(Skeleton &skeleton, std::string name);
-template <class Shape, class Skeleton, class Voxel>
-void verifyDualIterators(std::string name);
-template <class Skeleton, class Voxel>
-void verifyDualVertexIterator(Skeleton &skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyDualEdgeIterator(Skeleton &skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyDualSquareIterator(Skeleton &skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyDualCubeIterator(Skeleton &skeleton, std::string name);
-template <class Shape, class Skeleton, class Voxel>
-void verifyPrimalCellVoxelCorrespondance(std::string name);
-template <class Skeleton, class Voxel>
-void verifyPrimalSurroundingVoxelsV(std::string name);
-template <class Skeleton, class Shape, class Voxel>
-void verifyPrimalExistingVoxelsV(Skeleton skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyPrimalSurroundingVoxelsE(std::string name);
-template <class Skeleton, class Shape, class Voxel>
-void verifyPrimalExistingVoxelsE(Skeleton skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyPrimalSurroundingVoxelsS(std::string name);
-template <class Skeleton, class Shape, class Voxel>
-void verifyPrimalExistingVoxelsS(Skeleton skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyPrimalSurroundingVoxelsC(std::string name);
-template <class Skeleton, class Shape, class Voxel>
-void verifyPrimalExistingVoxelsC(Skeleton skeleton, std::string name);
-template <class Shape, class Skeleton, class Voxel>
-void verifyDualCellVoxelCorrespondance(std::string name);
-template <class Skeleton, class Voxel>
-void verifyDualSurroundingVoxelsV(std::string name);
-template <class Skeleton, class Shape, class Voxel>
-void verifyDualExistingVoxelsV(Skeleton skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyDualSurroundingVoxelsE(std::string name);
-template <class Skeleton, class Shape, class Voxel>
-void verifyDualExistingVoxelsE(Skeleton skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyDualSurroundingVoxelsS(std::string name);
-template <class Skeleton, class Shape, class Voxel>
-void verifyDualExistingVoxelsS(Skeleton skeleton, std::string name);
-template <class Skeleton, class Voxel>
-void verifyDualSurroundingVoxelsC(std::string name);
-template <class Skeleton, class Shape, class Voxel>
-void verifyDualExistingVoxelsC(Skeleton skeleton, std::string name);
+TEST(SkeletonTest, PrimalConstructor) {
+    std::vector<Voxel> voxels;
 
-TEST(SkeletonTest, Constructors) {
-  verifySkeletonConstructor<BaseShape<Voxel>, Voxel>("SkeletonBaseShape");
-  verifySkeletonConstructor<AddableShape<Voxel>, Voxel>("SkeletonAddableShape");
-  verifySkeletonConstructor<RemovableShape<Voxel>, Voxel>(
-      "SkeletonRemovableShape");
-  verifySkeletonConstructor<EditableShape<Voxel>, Voxel>(
-      "SkeletonEditableShape");
+    buildExample1SmallTranslated<Voxel>(voxels);
+
+    EditableShape<Voxel> shape(voxels);
+    PrimalSkeleton<EditableShape<Voxel>, Voxel, 0, 3> skeleton(shape);
+    PrimalSkeleton<EditableShape<Voxel>, Voxel, 1, 1> restrSkeleton(shape);
+
+    ASSERT_TRUE(skeleton.isPrimal())
+            << "primalSkeleton should be primal";
+    ASSERT_TRUE(restrSkeleton.isPrimal())
+            << "primalRestrSkeleton should be primal";
+
+    ASSERT_FALSE(skeleton.isAddable())
+            << "primalSkeleton addability";
+    ASSERT_FALSE(restrSkeleton.isAddable())
+            << "primalrestrSkeleton addability";
+    ASSERT_FALSE(skeleton.isRemovable())
+            << "primalSkeleton removability";
+    ASSERT_FALSE(restrSkeleton.isRemovable())
+            << "primalrestrSkeleton removability";
+
+    ASSERT_EQ(0, skeleton.getMinDim()) << "primalSkeleton max dim";
+    ASSERT_EQ(3, skeleton.getMaxDim()) << "primalSkeleton max dim";
+    ASSERT_EQ(1, restrSkeleton.getMinDim()) << "primalRestrSkeleton min dim";
+    ASSERT_EQ(1, restrSkeleton.getMaxDim()) << "primalRestrSkeleton max dim";
+
+    // Primal skeleton construction not done, so it is just empty.
+    ASSERT_EQ(0, skeleton.getEulerCharacteristic())
+            << "primalSkeleton Euler Characteristic.";
+    ASSERT_EQ(0, restrSkeleton.getEulerCharacteristic())
+            << "primalRestrSkeleton Euler Characteristic.";
+
+    ASSERT_EQ(0, skeleton.getNumberOfCells<0>()) << "primalSkeleton.";
+    ASSERT_EQ(0, skeleton.getNumberOfCells<1>()) << "primalSkeleton.";
+    ASSERT_EQ(0, skeleton.getNumberOfCells<2>()) << "primalSkeleton.";
+    ASSERT_EQ(0, skeleton.getNumberOfCells<3>()) << "primalSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCells<0>()) << "primalRestrSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCells<1>()) << "primalRestrSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCells<2>()) << "primalRestrSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCells<3>()) << "primalRestrSkeleton.";
+
+    ASSERT_EQ(0, skeleton.getNumberOfCellsInMainShape<0>())
+            << "primalSkeleton.";
+    ASSERT_EQ(0, skeleton.getNumberOfCellsInMainShape<1>())
+            << "primalSkeleton.";
+    ASSERT_EQ(0, skeleton.getNumberOfCellsInMainShape<2>())
+            << "primalSkeleton.";
+    ASSERT_EQ(0, skeleton.getNumberOfCellsInMainShape<3>())
+            << "primalSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCellsInMainShape<0>())
+            << "primalRestrSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCellsInMainShape<1>())
+            << "primalRestrSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCellsInMainShape<2>())
+            << "primalRestrSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCellsInMainShape<3>())
+            << "primalRestrSkeleton.";
+
+    ASSERT_TRUE(skeleton.begin<0>() == skeleton.end<0>());
+    ASSERT_TRUE(skeleton.begin<1>() == skeleton.end<1>());
+    ASSERT_TRUE(skeleton.begin<2>() == skeleton.end<2>());
+    ASSERT_TRUE(skeleton.begin<3>() == skeleton.end<3>());
+    ASSERT_TRUE(restrSkeleton.begin<0>() == skeleton.end<0>());
+    ASSERT_TRUE(restrSkeleton.begin<1>() == skeleton.end<1>());
+    ASSERT_TRUE(restrSkeleton.begin<2>() == skeleton.end<2>());
+    ASSERT_TRUE(restrSkeleton.begin<3>() == skeleton.end<3>());
+
+    const CellContainer &container = skeleton.getCellContainer();
+    ASSERT_EQ(container.getSize<0>(), 0);
+    ASSERT_EQ(container.getSize<1>(), 0);
+    ASSERT_EQ(container.getSize<2>(), 0);
+    ASSERT_EQ(container.getSize<3>(), 0);
+
+    const CellContainer &rcontainer = restrSkeleton.getCellContainer();
+    ASSERT_EQ(rcontainer.getSize<0>(), 0);
+    ASSERT_EQ(rcontainer.getSize<1>(), 0);
+    ASSERT_EQ(rcontainer.getSize<2>(), 0);
+    ASSERT_EQ(rcontainer.getSize<3>(), 0);
 }
 
-template <class Shape, class Voxel>
-void verifySkeletonConstructor(std::string name) {
-  std::vector<Voxel> voxels;
-  std::vector<typename Shape::Level> minLevels;
+TEST(SkeletonTest, PrimalVoxels) {
+    using PS = PrimalSkeleton<EditableShape<Voxel>, Voxel, 0, 3>;
 
-  buildExample1SmallTranslated<Shape,Voxel>(voxels, minLevels);
+    std::vector<Voxel> voxels;
+    std::unordered_set<Voxel> voxelSet;
+    std::vector<Point> vertices;
 
-  Shape shape(voxels, minLevels);
-  PrimalSkeleton<Shape, Voxel, 0, 3> primalSkeleton(shape);
-  DualSkeleton<Shape, Voxel, 0, 3> dualSkeleton(shape);
-  PrimalSkeleton<Shape, Voxel, 1, 1> primalRestrSkeleton(shape);
-  DualSkeleton<Shape, Voxel, 0, 2> dualRestrSkeleton(shape);
+    vertices.push_back({1,1,1});
+    Cell<0> vertex(vertices,0);
+    PS::getCorrespondingVoxels(vertex, voxels);
 
-  ASSERT_TRUE(primalSkeleton.isPrimal())
-      << name << "::primalSkeleton should be primal";
-  ASSERT_TRUE(primalRestrSkeleton.isPrimal())
-      << name << "::primalRestrSkeleton should be primal";
-  ASSERT_FALSE(dualSkeleton.isPrimal())
-      << name << "::dualSkeleton should be dual";
-  ASSERT_FALSE(dualRestrSkeleton.isPrimal())
-      << name << "::dualRestrSkeleton should be dual";
+    ASSERT_EQ(voxels.size(), 8);
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(0,0,0)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,1,0)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,0,0)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,0)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,1,1)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,0,1)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,0,1)) != voxelSet.end())
+            << "Primal skeleton";
 
-  ASSERT_EQ(0, primalSkeleton.getMinDim())
-      << name << "::primalSkeleton should have minDim = 0 and not "
-      << primalSkeleton.getMinDim() << ".";
-  ASSERT_EQ(3, primalSkeleton.getMaxDim())
-      << name << "::primalSkeleton should have maxDim = 3 and not "
-      << primalSkeleton.getMaxDim() << ".";
-  ASSERT_EQ(0, dualSkeleton.getMinDim())
-      << name << "::dualSkeleton should have minDim = 0 and not "
-      << primalSkeleton.getMinDim() << ".";
-  ASSERT_EQ(3, dualSkeleton.getMaxDim())
-      << name << "::dualSkeleton should have maxDim = 3 and not "
-      << primalSkeleton.getMaxDim() << ".";
-  ASSERT_EQ(1, primalRestrSkeleton.getMinDim())
-      << name << "::primalRestrSkeleton should have minDim = 1 and not "
-      << primalSkeleton.getMinDim() << ".";
-  ASSERT_EQ(1, primalRestrSkeleton.getMaxDim())
-      << name << "::primalRestrSkeleton should have maxDim = 1 and not "
-      << primalSkeleton.getMaxDim() << ".";
-  ASSERT_EQ(0, dualRestrSkeleton.getMinDim())
-      << name << "::dualRestrSkeleton should have minDim = 0 and not "
-      << primalSkeleton.getMinDim() << ".";
-  ASSERT_EQ(2, dualRestrSkeleton.getMaxDim())
-      << name << "::dualRestrSkeleton should have maxDim = 2 and not "
-      << primalSkeleton.getMaxDim() << ".";
+    vertices.push_back({2,1,1});
+    Cell<1> edge(vertices,0);
+    PS::getCorrespondingVoxels(edge, voxels);
 
-  ASSERT_EQ(1, dualSkeleton.getEulerCharacteristic())
-      << name << "::dualSkeleton has wrong Euler Characteristic.";
-  ASSERT_EQ(1, dualRestrSkeleton.getEulerCharacteristic())
-      << name << "::dualRestrSkeleton has wrong Euler Characteristic.";
+    ASSERT_EQ(voxels.size(), 4);
+    voxelSet.clear();
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,0,0)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,0)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,0,1)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Primal skeleton";
+
+    vertices.push_back({1,1,2});
+    vertices.push_back({2,1,2});
+    Cell<2> square(vertices,0);
+    PS::getCorrespondingVoxels(square, voxels);
+
+    ASSERT_EQ(voxels.size(), 2);
+    voxelSet.clear();
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,0,1)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Primal skeleton";
+
+    vertices.push_back({1,2,2});
+    vertices.push_back({2,2,2});
+    vertices.push_back({1,2,1});
+    vertices.push_back({2,2,1});
+    Cell<3> cube(vertices,0);
+    PS::getCorrespondingVoxels(cube, voxels);
+
+    ASSERT_EQ(voxels.size(), 1);
+    voxelSet.clear();
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Primal skeleton";
 }
 
-TEST(SkeletonTest, Iterators) {
-  verifyDualIterators<
-          BaseShape<Voxel>,
-          DualSkeleton<BaseShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("DualSkeletonBaseShape");
-  verifyDualIterators<
-          AddableShape<Voxel>,
-          DualSkeleton<AddableShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("DualSkeletonAddableShape");
-  verifyDualIterators<
-          RemovableShape<Voxel>,
-          DualSkeleton<RemovableShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("DualSkeletonRemovableShape");
-  verifyDualIterators<
-          EditableShape<Voxel>,
-          DualSkeleton<EditableShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("DualSkeletonEditableShape");
+TEST(SkeletonTest, PrimalVoxelsIn) {
+    std::vector<Voxel> voxels;
+    std::unordered_set<Voxel> voxelSet;
+    std::vector<Point> vertices;
+
+    buildExample1SmallTranslated<Voxel>(voxels);
+
+    EditableShape<Voxel> shape(voxels);
+    PrimalSkeleton<EditableShape<Voxel>, Voxel, 0, 3> skeleton(shape);
+
+    vertices.push_back({1,2,1});
+    Cell<0> vertex(vertices,0);
+    skeleton.getCorrespondingVoxelsIn<0,Level::NEIGHBORHOOD>(vertex, voxels);
+
+    ASSERT_EQ(voxels.size(), 4);
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,1,1)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,2,0)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,2,1)) != voxelSet.end())
+            << "Primal skeleton";
+
+    skeleton.getCorrespondingVoxelsIn<0,Level::MAIN_SHAPE>(vertex, voxels);
+
+    ASSERT_EQ(voxels.size(), 4);
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,1,1)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,2,0)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,2,1)) != voxelSet.end())
+            << "Primal skeleton";
+
+    skeleton.getCorrespondingVoxelsIn<0,Level::CORE>(vertex, voxels);
+
+    ASSERT_EQ(voxels.size(), 2);
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(0,1,1)) != voxelSet.end())
+            << "Primal skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,2,1)) != voxelSet.end())
+            << "Primal skeleton";
 }
 
-template <class Shape, class Skeleton, class Voxel>
-void verifyPrimalIterators(std::string name) {
-  std::vector<Voxel> voxels;
-  std::vector<typename Shape::Level> minLevels;
+TEST(SkeletonTest, DualConstructor) {
+    std::vector<Voxel> voxels;
 
-  buildMiniExample1<Shape,Voxel>(voxels, minLevels);
+    buildExample1SmallTranslated<Voxel>(voxels);
 
-  Shape shape(voxels, minLevels);
-  Skeleton skeleton(shape);
+    EditableShape<Voxel> shape(voxels);
+    DualSkeleton<EditableShape<Voxel>, Voxel, 0, 3> skeleton(shape);
+    DualSkeleton<EditableShape<Voxel>, Voxel, 1, 1> restrSkeleton(shape);
 
-  verifyPrimalVertexIterator<Skeleton, Voxel>(skeleton, name + "::VertexIt");
-  verifyPrimalEdgeIterator<Skeleton, Voxel>(skeleton, name + "::EdgeIt");
-  verifyPrimalSquareIterator<Skeleton, Voxel>(skeleton, name + "::SquareIt");
-  verifyPrimalCubeIterator<Skeleton, Voxel>(skeleton, name + "::CubeIt");
+    ASSERT_FALSE(skeleton.isPrimal())
+            << "dualSkeleton should not be primal";
+    ASSERT_FALSE(restrSkeleton.isPrimal())
+            << "dualRestrSkeleton should not be primal";
+
+    ASSERT_FALSE(skeleton.isAddable())
+            << "dualSkeleton addability";
+    ASSERT_FALSE(restrSkeleton.isAddable())
+            << "dualrestrSkeleton addability";
+    ASSERT_FALSE(skeleton.isRemovable())
+            << "dualSkeleton removability";
+    ASSERT_FALSE(restrSkeleton.isRemovable())
+            << "dualrestrSkeleton removability";
+
+    ASSERT_EQ(0, skeleton.getMinDim()) << "dualSkeleton max dim";
+    ASSERT_EQ(3, skeleton.getMaxDim()) << "dualSkeleton max dim";
+    ASSERT_EQ(1, restrSkeleton.getMinDim()) << "dualRestrSkeleton min dim";
+    ASSERT_EQ(1, restrSkeleton.getMaxDim()) << "dualRestrSkeleton max dim";
+
+    ASSERT_EQ(2, skeleton.getEulerCharacteristic())
+            << "dualSkeleton Euler Characteristic.";
+    ASSERT_EQ(-12, restrSkeleton.getEulerCharacteristic())
+            << "dualRestrSkeleton Euler Characteristic.";
+
+    ASSERT_EQ(14, skeleton.getNumberOfCells<0>()) << "dualSkeleton.";
+    ASSERT_EQ(18, skeleton.getNumberOfCells<1>()) << "dualSkeleton.";
+    ASSERT_EQ(7, skeleton.getNumberOfCells<2>()) << "dualSkeleton.";
+    ASSERT_EQ(1, skeleton.getNumberOfCells<3>()) << "dualSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCells<0>()) << "dualRestrSkeleton.";
+    ASSERT_EQ(18, restrSkeleton.getNumberOfCells<1>()) << "dualRestrSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCells<2>()) << "dualRestrSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCells<3>()) << "dualRestrSkeleton.";
+
+    ASSERT_EQ(11, skeleton.getNumberOfCellsInMainShape<0>())
+            << "dualSkeleton.";
+    ASSERT_EQ(12, skeleton.getNumberOfCellsInMainShape<1>())
+            << "dualSkeleton.";
+    ASSERT_EQ(3, skeleton.getNumberOfCellsInMainShape<2>())
+            << "dualSkeleton.";
+    ASSERT_EQ(0, skeleton.getNumberOfCellsInMainShape<3>())
+            << "dualSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCellsInMainShape<0>())
+            << "dualRestrSkeleton.";
+    ASSERT_EQ(12, restrSkeleton.getNumberOfCellsInMainShape<1>())
+            << "dualRestrSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCellsInMainShape<2>())
+            << "dualRestrSkeleton.";
+    ASSERT_EQ(0, restrSkeleton.getNumberOfCellsInMainShape<3>())
+            << "dualRestrSkeleton.";
+
+    int count = 0;
+    for (auto it = skeleton.begin<0>(); it != skeleton.end<0>(); it++)
+        count++;
+    ASSERT_EQ(14, count);
+    count = 0;
+    for (auto it = skeleton.begin<1>(); it != skeleton.end<1>(); it++)
+        count++;
+    ASSERT_EQ(18, count);
+    count = 0;
+    for (auto it = skeleton.begin<2>(); it != skeleton.end<2>(); it++)
+        count++;
+    ASSERT_EQ(7, count);
+    count = 0;
+    for (auto it = skeleton.begin<3>(); it != skeleton.end<3>(); it++)
+        count++;
+    ASSERT_EQ(1, count);
+
+    count = 0;
+    for (auto it = restrSkeleton.begin<0>(); it != restrSkeleton.end<0>(); it++)
+        count++;
+    ASSERT_EQ(0, count);
+    count = 0;
+    for (auto it = restrSkeleton.begin<1>(); it != restrSkeleton.end<1>(); it++)
+        count++;
+    ASSERT_EQ(18, count);
+    count = 0;
+    for (auto it = restrSkeleton.begin<2>(); it != restrSkeleton.end<2>(); it++)
+        count++;
+    ASSERT_EQ(0, count);
+    count = 0;
+    for (auto it = restrSkeleton.begin<3>(); it != restrSkeleton.end<3>(); it++)
+        count++;
+    ASSERT_EQ(0, count);
+
+    const CellContainer &container = skeleton.getCellContainer();
+    ASSERT_EQ(container.getSize<0>(), 14);
+    ASSERT_EQ(container.getSize<1>(), 18);
+    ASSERT_EQ(container.getSize<2>(), 7);
+    ASSERT_EQ(container.getSize<3>(), 1);
+
+    const CellContainer &rcontainer = restrSkeleton.getCellContainer();
+    ASSERT_EQ(rcontainer.getSize<0>(), 0);
+    ASSERT_EQ(rcontainer.getSize<1>(), 18);
+    ASSERT_EQ(rcontainer.getSize<2>(), 0);
+    ASSERT_EQ(rcontainer.getSize<3>(), 0);
 }
 
-template <class Skeleton, class Voxel>
-void verifyPrimalVertexIterator(Skeleton &skeleton, std::string name) {
-  typename Skeleton::template cell_iterator<0> it = skeleton.template begin<0>();
-  std::unordered_set<typename Skeleton::vertex,
-                     typename Skeleton::vertex::CellHasher>
-      cells;
-  std::array<Point, 1> vertices;
+TEST(SkeletonTest, DualVoxels) {
+    using DS = DualSkeleton<EditableShape<Voxel>, Voxel, 0, 3>;
 
-  while (it != skeleton.template end<0>()) {
-    cells.insert(*it);
-    ++it;
-  }
+    std::vector<Voxel> voxels;
+    std::unordered_set<Voxel> voxelSet;
+    std::vector<Point> vertices;
 
-  vertices[0] = Point{1, 1, 1};
-  Cell<0> v1(vertices, 0);
-  vertices[0] = Point{1, 2, 0};
-  Cell<0> v2(vertices, 0);
-  vertices[0] = Point{2, 1, 2};
-  Cell<0> v3(vertices, 0);
-  vertices[0] = Point{0, 0, 2};
-  Cell<0> v4(vertices, 0);
+    vertices.push_back({1,1,1});
+    Cell<0> vertex(vertices,0);
+    DS::getCorrespondingVoxels(vertex, voxels);
 
-  ASSERT_NE(cells.find(v1), cells.end()) << name << "::v1 is missing.";
-  ASSERT_NE(cells.find(v2), cells.end()) << name << "::v2 is missing.";
-  ASSERT_NE(cells.find(v3), cells.end()) << name << "::v3 is missing.";
-  ASSERT_EQ(cells.find(v4), cells.end())
-      << name << "::v4 should not be contained.";
+    ASSERT_EQ(voxels.size(), 1);
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Dual skeleton";
 
-  ASSERT_EQ(cells.size(), 24);
+    vertices.push_back({2,1,1});
+    Cell<1> edge(vertices,0);
+    DS::getCorrespondingVoxels(edge, voxels);
+
+    ASSERT_EQ(voxels.size(), 2);
+    voxelSet.clear();
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(2,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+
+    vertices.push_back({1,1,2});
+    vertices.push_back({2,1,2});
+    Cell<2> square(vertices,0);
+    DS::getCorrespondingVoxels(square, voxels);
+
+    ASSERT_EQ(voxels.size(), 4);
+    voxelSet.clear();
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(2,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,2)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(2,1,2)) != voxelSet.end())
+            << "Dual skeleton";
+
+    vertices.push_back({1,2,2});
+    vertices.push_back({2,2,2});
+    vertices.push_back({1,2,1});
+    vertices.push_back({2,2,1});
+    Cell<3> cube(vertices,0);
+    DS::getCorrespondingVoxels(cube, voxels);
+
+    ASSERT_EQ(voxels.size(), 8);
+    voxelSet.clear();
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(2,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,2)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(2,1,2)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,2,2)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(2,2,2)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(1,2,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(2,2,1)) != voxelSet.end())
+            << "Dual skeleton";
 }
 
-template <class Skeleton, class Voxel>
-void verifyPrimalEdgeIterator(Skeleton &skeleton, std::string name) {
-  typename Skeleton::template cell_iterator<1> it = skeleton.template begin<1>();
-  std::unordered_set<typename Skeleton::edge,
-                     typename Skeleton::edge::CellHasher>
-      cells;
-  std::array<Point, 2> vertices;
+TEST(SkeletonTest, DualVoxelsIn) {
+    std::vector<Voxel> voxels;
+    std::unordered_set<Voxel> voxelSet;
+    std::vector<Point> vertices;
 
-  while (it != skeleton.template end<1>()) {
-    cells.insert(*it);
-    ++it;
-  }
+    buildExample1SmallTranslated<Voxel>(voxels);
 
-  vertices[0] = Point{0, 1, 1};
-  vertices[1] = Point{1, 1, 1};
-  Cell<1> e1(vertices, 0);
-  vertices[0] = Point{1, 2, 0};
-  vertices[1] = Point{1, 2, 1};
-  Cell<1> e2(vertices, 0);
-  vertices[0] = Point{2, 1, 2};
-  vertices[1] = Point{1, 1, 2};
-  Cell<1> e3(vertices, 0);
-  vertices[0] = Point{0, 0, 2};
-  vertices[1] = Point{0, 0, 1};
-  Cell<1> e4(vertices, 0);
+    EditableShape<Voxel> shape(voxels);
+    DualSkeleton<EditableShape<Voxel>, Voxel, 0, 3> skeleton(shape);
 
-  ASSERT_NE(cells.find(e1), cells.end()) << name << "::e1 is missing.";
-  ASSERT_NE(cells.find(e2), cells.end()) << name << "::e2 is missing.";
-  ASSERT_NE(cells.find(e3), cells.end()) << name << "::e3 is missing.";
-  ASSERT_EQ(cells.find(e4), cells.end())
-      << name << "::e4 should not be contained.";
+    vertices.push_back({0,1,0});
+    vertices.push_back({0,1,1});
+    vertices.push_back({0,2,0});
+    vertices.push_back({0,2,1});
+    vertices.push_back({1,1,0});
+    vertices.push_back({1,1,1});
+    vertices.push_back({1,2,0});
+    vertices.push_back({1,2,1});
+    Cell<3> cube(vertices,0);
+    skeleton.getCorrespondingVoxelsIn<3,Level::NEIGHBORHOOD>(cube, voxels);
 
-  ASSERT_EQ(cells.size(), 42);
+    ASSERT_EQ(voxels.size(), 4);
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,2,0)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,2,1)) != voxelSet.end())
+            << "Dual skeleton";
+
+    skeleton.getCorrespondingVoxelsIn<3,Level::MAIN_SHAPE>(cube, voxels);
+
+    ASSERT_EQ(voxels.size(), 4);
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(1,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,2,0)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,2,1)) != voxelSet.end())
+            << "Dual skeleton";
+
+    skeleton.getCorrespondingVoxelsIn<3,Level::CORE>(cube, voxels);
+
+    ASSERT_EQ(voxels.size(), 2);
+    for (Voxel v : voxels) voxelSet.insert(v);
+    ASSERT_TRUE(voxelSet.find(Voxel(0,1,1)) != voxelSet.end())
+            << "Dual skeleton";
+    ASSERT_TRUE(voxelSet.find(Voxel(0,2,1)) != voxelSet.end())
+            << "Dual skeleton";
 }
 
-template <class Skeleton, class Voxel>
-void verifyPrimalSquareIterator(Skeleton &skeleton, std::string name) {
-  typename Skeleton::template cell_iterator<2> it = skeleton.template begin<2>();
-  std::unordered_set<typename Skeleton::square,
-                     typename Skeleton::square::CellHasher>
-      cells;
-  std::array<Point, 4> vertices;
-
-  while (it != skeleton.template end<2>()) {
-    cells.insert(*it);
-    ++it;
-  }
-
-  vertices[0] = Point{0, 1, 1};
-  vertices[1] = Point{1, 1, 1};
-  vertices[2] = Point{0, 1, 0};
-  vertices[3] = Point{1, 1, 0};
-  Cell<2> s1(vertices, 0);
-  vertices[0] = Point{1, 2, 0};
-  vertices[1] = Point{1, 2, 1};
-  vertices[2] = Point{0, 2, 0};
-  vertices[3] = Point{0, 2, 1};
-  Cell<2> s2(vertices, 0);
-  vertices[0] = Point{2, 1, 2};
-  vertices[1] = Point{1, 1, 2};
-  vertices[2] = Point{1, 1, 3};
-  vertices[3] = Point{2, 1, 3};
-  Cell<2> s3(vertices, 0);
-  vertices[0] = Point{0, 0, 2};
-  vertices[1] = Point{0, 0, 1};
-  vertices[2] = Point{1, 0, 1};
-  vertices[3] = Point{1, 0, 2};
-  Cell<2> s4(vertices, 0);
-
-  ASSERT_NE(cells.find(s1), cells.end()) << name << "::s1 is missing.";
-  ASSERT_NE(cells.find(s2), cells.end()) << name << "::s2 is missing.";
-  ASSERT_NE(cells.find(s3), cells.end()) << name << "::s3 is missing.";
-  ASSERT_EQ(cells.find(s4), cells.end())
-      << name << "::s4 should not be contained.";
-
-  ASSERT_EQ(cells.size(), 23);
-}
-
-template <class Skeleton, class Voxel>
-void verifyPrimalCubeIterator(Skeleton &skeleton, std::string name) {
-  typename Skeleton::template cell_iterator<3> it = skeleton.template begin<3>();
-  std::unordered_set<typename Skeleton::cube,
-                     typename Skeleton::cube::CellHasher>
-      cells;
-  std::array<Point, 8> vertices;
-
-  while (it != skeleton.template end<3>()) {
-    cells.insert(*it);
-    ++it;
-  }
-
-  vertices[0] = Point{0, 0, 0};
-  vertices[1] = Point{0, 0, 1};
-  vertices[2] = Point{0, 1, 0};
-  vertices[3] = Point{0, 1, 1};
-  vertices[4] = Point{1, 0, 0};
-  vertices[5] = Point{1, 0, 1};
-  vertices[6] = Point{1, 1, 0};
-  vertices[7] = Point{1, 1, 1};
-  Cell<3> c1(vertices, 0);
-  vertices[0] = Point{0, 1, 0};
-  vertices[1] = Point{0, 1, 1};
-  vertices[2] = Point{0, 2, 0};
-  vertices[3] = Point{0, 2, 1};
-  vertices[4] = Point{1, 1, 0};
-  vertices[5] = Point{1, 1, 1};
-  vertices[6] = Point{1, 2, 0};
-  vertices[7] = Point{1, 2, 1};
-  Cell<3> c2(vertices, 0);
-  vertices[0] = Point{1, 1, 1};
-  vertices[1] = Point{1, 1, 2};
-  vertices[2] = Point{1, 2, 1};
-  vertices[3] = Point{1, 2, 2};
-  vertices[4] = Point{2, 1, 1};
-  vertices[5] = Point{2, 1, 2};
-  vertices[6] = Point{2, 2, 1};
-  vertices[7] = Point{2, 2, 2};
-  Cell<3> c3(vertices, 0);
-  vertices[0] = Point{1, 0, 2};
-  vertices[1] = Point{1, 0, 3};
-  vertices[2] = Point{1, 1, 2};
-  vertices[3] = Point{1, 1, 3};
-  vertices[4] = Point{2, 0, 2};
-  vertices[5] = Point{2, 0, 3};
-  vertices[6] = Point{2, 1, 2};
-  vertices[7] = Point{2, 1, 3};
-  Cell<3> c4(vertices, 0);
-
-  ASSERT_NE(cells.find(c1), cells.end()) << name << "::c1 is missing.";
-  ASSERT_NE(cells.find(c2), cells.end()) << name << "::c2 is missing.";
-  ASSERT_NE(cells.find(c3), cells.end()) << name << "::c3 is missing.";
-  ASSERT_NE(cells.find(c4), cells.end()) << name << "::c4 is missing.";
-
-  ASSERT_EQ(cells.size(), 4);
-}
-
-template <class Shape, class Skeleton, class Voxel>
-void verifyDualIterators(std::string name) {
-  std::vector<Voxel> voxels;
-  std::vector<typename Shape::Level> minLevels;
-
-  buildExample1SmallTranslated<Shape,Voxel>(voxels, minLevels);
-
-  Shape shape(voxels, minLevels);
-  Skeleton skeleton(shape);
-
-  verifyDualVertexIterator<Skeleton, Voxel>(skeleton, name + "::VertexIt");
-  verifyDualEdgeIterator<Skeleton, Voxel>(skeleton, name + "::EdgeIt");
-  verifyDualSquareIterator<Skeleton, Voxel>(skeleton, name + "::SquareIt");
-  verifyDualCubeIterator<Skeleton, Voxel>(skeleton, name + "::CubeIt");
-}
-
-template <class Skeleton, class Voxel>
-void verifyDualVertexIterator(Skeleton &skeleton, std::string name) {
-  typename Skeleton::template cell_iterator<0> it = skeleton.template begin<0>();
-  std::unordered_set<typename Skeleton::vertex,
-                     typename Skeleton::vertex::CellHasher>
-      cells;
-  std::array<Point, 1> vertices;
-
-  while (it != skeleton.template end<0>()) {
-    cells.insert(*it);
-    ++it;
-  }
-
-  vertices[0] = Point{1, 1, 1};
-  Cell<0> v1(vertices, 0);
-  vertices[0] = Point{0, 3, 1};
-  Cell<0> v2(vertices, 0);
-  vertices[0] = Point{0, 0, 2};
-  Cell<0> v3(vertices, 0);
-  vertices[0] = Point{0, 1, 0};
-  Cell<0> v4(vertices, 0);
-
-  ASSERT_NE(cells.find(v1), cells.end()) << name << "::v1 is missing.";
-  ASSERT_NE(cells.find(v2), cells.end()) << name << "::v2 is missing.";
-  ASSERT_NE(cells.find(v3), cells.end()) << name << "::v3 is missing.";
-  ASSERT_EQ(cells.find(v4), cells.end())
-      << name << "::v4 should not be contained.";
-
-  ASSERT_EQ(cells.size(), 14);
-}
-
-template <class Skeleton, class Voxel>
-void verifyDualEdgeIterator(Skeleton &skeleton, std::string name) {
-  typename Skeleton::template cell_iterator<1> it = skeleton.template begin<1>();
-  std::unordered_set<typename Skeleton::edge,
-                     typename Skeleton::edge::CellHasher>
-      cells;
-  std::array<Point, 2> vertices;
-
-  while (it != skeleton.template end<1>()) {
-    cells.insert(*it);
-    ++it;
-  }
-
-  vertices[0] = Point{0, 0, 0};
-  vertices[1] = Point{0, 0, 1};
-  Cell<1> e1(vertices, 0);
-  vertices[0] = Point{0, 1, 1};
-  vertices[1] = Point{0, 1, 2};
-  Cell<1> e2(vertices, 0);
-  vertices[0] = Point{0, 2, 1};
-  vertices[1] = Point{0, 2, 0};
-  Cell<1> e3(vertices, 0);
-  vertices[0] = Point{0, 0, 0};
-  vertices[1] = Point{0, 1, 0};
-  Cell<1> e4(vertices, 0);
-
-  ASSERT_TRUE(cells.find(e1) != cells.end()) << name << "::e1 is missing.";
-  ASSERT_NE(cells.find(e2), cells.end()) << name << "::e2 is missing.";
-  ASSERT_NE(cells.find(e3), cells.end()) << name << "::e3 is missing.";
-  ASSERT_EQ(cells.find(e4), cells.end())
-      << name << "::e4 should not be contained.";
-
-  ASSERT_EQ(cells.size(), 18);
-}
-
-template <class Skeleton, class Voxel>
-void verifyDualSquareIterator(Skeleton &skeleton, std::string name) {
-  typename Skeleton::template cell_iterator<2> it = skeleton.template begin<2>();
-  std::unordered_set<typename Skeleton::square,
-                     typename Skeleton::square::CellHasher>
-      cells;
-  std::array<Point, 4> vertices;
-
-  while (it != skeleton.template end<2>()) {
-    cells.insert(*it);
-    ++it;
-  }
-
-  vertices[0] = Point{0, 0, 1};
-  vertices[1] = Point{0, 1, 1};
-  vertices[2] = Point{0, 0, 2};
-  vertices[3] = Point{0, 1, 2};
-  Cell<2> s1(vertices, 0);
-  vertices[0] = Point{0, 0, 2};
-  vertices[1] = Point{0, 1, 2};
-  vertices[2] = Point{1, 0, 2};
-  vertices[3] = Point{1, 1, 2};
-  Cell<2> s2(vertices, 0);
-  vertices[0] = Point{0, 2, 0};
-  vertices[1] = Point{0, 3, 0};
-  vertices[2] = Point{0, 2, 1};
-  vertices[3] = Point{0, 3, 1};
-  Cell<2> s3(vertices, 0);
-  vertices[0] = Point{0, 1, 1};
-  vertices[1] = Point{0, 2, 1};
-  vertices[2] = Point{0, 1, 2};
-  vertices[3] = Point{0, 2, 2};
-  Cell<2> s4(vertices, 0);
-
-  ASSERT_NE(cells.find(s1), cells.end()) << name << "::s1 is missing.";
-  ASSERT_NE(cells.find(s2), cells.end()) << name << "::s2 is missing.";
-  ASSERT_NE(cells.find(s3), cells.end()) << name << "::s3 is missing.";
-  ASSERT_EQ(cells.find(s4), cells.end())
-      << name << "::s4 should not be contained.";
-
-  ASSERT_EQ(cells.size(), 7);
-}
-
-template <class Skeleton, class Voxel>
-void verifyDualCubeIterator(Skeleton &skeleton, std::string name) {
-  typename Skeleton::template cell_iterator<3> it = skeleton.template begin<3>();
-  std::unordered_set<typename Skeleton::cube,
-                     typename Skeleton::cube::CellHasher>
-      cells;
-  std::array<Point, 8> vertices;
-
-  while (it != skeleton.template end<3>()) {
-    cells.insert(*it);
-    ++it;
-  }
-
-  vertices[0] = Point{0, 0, 1};
-  vertices[1] = Point{0, 0, 2};
-  vertices[2] = Point{0, 1, 1};
-  vertices[3] = Point{0, 1, 2};
-  vertices[4] = Point{1, 0, 1};
-  vertices[5] = Point{1, 0, 2};
-  vertices[6] = Point{1, 1, 1};
-  vertices[7] = Point{1, 1, 2};
-  Cell<3> c1(vertices, 0);
-  vertices[0] = Point{0, 1, 0};
-  vertices[1] = Point{0, 1, 1};
-  vertices[2] = Point{0, 2, 0};
-  vertices[3] = Point{0, 2, 1};
-  vertices[4] = Point{1, 1, 0};
-  vertices[5] = Point{1, 1, 1};
-  vertices[6] = Point{1, 2, 0};
-  vertices[7] = Point{1, 2, 1};
-  Cell<3> c2(vertices, 0);
-
-  ASSERT_NE(cells.find(c1), cells.end()) << name << "::c1 is missing.";
-  ASSERT_EQ(cells.find(c2), cells.end())
-      << name << "::c2 should not be contained.";
-
-  ASSERT_EQ(cells.size(), 1);
-}
-
-TEST(SkeletonTest, CellVoxelCorrespondance) {
-  verifyPrimalCellVoxelCorrespondance<
-          BaseShape<Voxel>,
-          PrimalSkeleton<BaseShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("PrimalSkeletonBaseShape");
-  verifyPrimalCellVoxelCorrespondance<
-          AddableShape<Voxel>,
-          PrimalSkeleton<AddableShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("PrimalSkeletonAddableShape");
-  verifyPrimalCellVoxelCorrespondance<
-          RemovableShape<Voxel>,
-          PrimalSkeleton<RemovableShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("PrimalSkeletonRemovableShape");
-  verifyPrimalCellVoxelCorrespondance<
-          EditableShape<Voxel>,
-          PrimalSkeleton<EditableShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("PrimalSkeletonEditableShape");
-  verifyDualCellVoxelCorrespondance<
-          BaseShape<Voxel>,
-          DualSkeleton<BaseShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("DualSkeletonBaseShape");
-  verifyDualCellVoxelCorrespondance<
-          AddableShape<Voxel>,
-          DualSkeleton<AddableShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("DualSkeletonAddableShape");
-  verifyDualCellVoxelCorrespondance<
-          RemovableShape<Voxel>,
-          DualSkeleton<RemovableShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("DualSkeletonRemovableShape");
-  verifyDualCellVoxelCorrespondance<
-          EditableShape<Voxel>,
-          DualSkeleton<EditableShape<Voxel>, Voxel, 0, 3>,
-          Voxel>("DualSkeletonEditableShape");
-}
-
-template <class Shape, class Skeleton, class Voxel>
-void verifyPrimalCellVoxelCorrespondance(std::string name) {
-  std::vector<Voxel> voxels;
-  std::vector<typename Shape::Level> minLevels;
-
-  buildMiniExample1<Shape,Voxel>(voxels, minLevels);
-
-  Shape shape(voxels, minLevels);
-  Skeleton skeleton(shape);
-
-  verifyPrimalSurroundingVoxelsV<Skeleton, Voxel>(name + "::Vertex");
-  verifyPrimalExistingVoxelsV<Skeleton, Shape, Voxel>(skeleton,
-                                                      name + "::Vertex");
-  verifyPrimalSurroundingVoxelsE<Skeleton, Voxel>(name + "::Edge");
-  verifyPrimalExistingVoxelsE<Skeleton, Shape, Voxel>(skeleton,
-                                                      name + "::Edge");
-  verifyPrimalSurroundingVoxelsS<Skeleton, Voxel>(name + "::Square");
-  verifyPrimalExistingVoxelsS<Skeleton, Shape, Voxel>(skeleton,
-                                                      name + "::Square");
-  verifyPrimalSurroundingVoxelsC<Skeleton, Voxel>(name + "::Cube");
-  verifyPrimalExistingVoxelsC<Skeleton, Shape, Voxel>(skeleton,
-                                                      name + "::Cube");
-}
-
-template <class Skeleton, class Voxel>
-void verifyPrimalSurroundingVoxelsV(std::string name) {
-  std::array<Point, 1> vertices;
-  vertices[0] = Point{1, 1, 1};
-  Cell<0> v(vertices, 0);
-
-  std::array<Voxel, 8> voxels;
-  Skeleton::getCorrespondingVoxels(v, voxels);
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0] ||
-              Voxel(Point{0, 0, 0}) == voxels[1] ||
-              Voxel(Point{0, 0, 0}) == voxels[2] ||
-              Voxel(Point{0, 0, 0}) == voxels[3] ||
-              Voxel(Point{0, 0, 0}) == voxels[4] ||
-              Voxel(Point{0, 0, 0}) == voxels[5] ||
-              Voxel(Point{0, 0, 0}) == voxels[6] ||
-              Voxel(Point{0, 0, 0}) == voxels[7])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0] ||
-              Voxel(Point{0, 1, 0}) == voxels[1] ||
-              Voxel(Point{0, 1, 0}) == voxels[2] ||
-              Voxel(Point{0, 1, 0}) == voxels[3] ||
-              Voxel(Point{0, 1, 0}) == voxels[4] ||
-              Voxel(Point{0, 1, 0}) == voxels[5] ||
-              Voxel(Point{0, 1, 0}) == voxels[6] ||
-              Voxel(Point{0, 1, 0}) == voxels[7])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 0, 1}) == voxels[0] ||
-              Voxel(Point{0, 0, 1}) == voxels[1] ||
-              Voxel(Point{0, 0, 1}) == voxels[2] ||
-              Voxel(Point{0, 0, 1}) == voxels[3] ||
-              Voxel(Point{0, 0, 1}) == voxels[4] ||
-              Voxel(Point{0, 0, 1}) == voxels[5] ||
-              Voxel(Point{0, 0, 1}) == voxels[6] ||
-              Voxel(Point{0, 0, 1}) == voxels[7])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1] ||
-              Voxel(Point{0, 1, 1}) == voxels[2] ||
-              Voxel(Point{0, 1, 1}) == voxels[3] ||
-              Voxel(Point{0, 1, 1}) == voxels[4] ||
-              Voxel(Point{0, 1, 1}) == voxels[5] ||
-              Voxel(Point{0, 1, 1}) == voxels[6] ||
-              Voxel(Point{0, 1, 1}) == voxels[7])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 0, 1}) == voxels[0] ||
-              Voxel(Point{1, 0, 1}) == voxels[1] ||
-              Voxel(Point{1, 0, 1}) == voxels[2] ||
-              Voxel(Point{1, 0, 1}) == voxels[3] ||
-              Voxel(Point{1, 0, 1}) == voxels[4] ||
-              Voxel(Point{1, 0, 1}) == voxels[5] ||
-              Voxel(Point{1, 0, 1}) == voxels[6] ||
-              Voxel(Point{1, 0, 1}) == voxels[7])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1] ||
-              Voxel(Point{1, 1, 1}) == voxels[2] ||
-              Voxel(Point{1, 1, 1}) == voxels[3] ||
-              Voxel(Point{1, 1, 1}) == voxels[4] ||
-              Voxel(Point{1, 1, 1}) == voxels[5] ||
-              Voxel(Point{1, 1, 1}) == voxels[6] ||
-              Voxel(Point{1, 1, 1}) == voxels[7])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 0, 0}) == voxels[0] ||
-              Voxel(Point{1, 0, 0}) == voxels[1] ||
-              Voxel(Point{1, 0, 0}) == voxels[2] ||
-              Voxel(Point{1, 0, 0}) == voxels[3] ||
-              Voxel(Point{1, 0, 0}) == voxels[4] ||
-              Voxel(Point{1, 0, 0}) == voxels[5] ||
-              Voxel(Point{1, 0, 0}) == voxels[6] ||
-              Voxel(Point{1, 0, 0}) == voxels[7])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 0}) == voxels[0] ||
-              Voxel(Point{1, 1, 0}) == voxels[1] ||
-              Voxel(Point{1, 1, 0}) == voxels[2] ||
-              Voxel(Point{1, 1, 0}) == voxels[3] ||
-              Voxel(Point{1, 1, 0}) == voxels[4] ||
-              Voxel(Point{1, 1, 0}) == voxels[5] ||
-              Voxel(Point{1, 1, 0}) == voxels[6] ||
-              Voxel(Point{1, 1, 0}) == voxels[7])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-}
-
-template <class Skeleton, class Shape, class Voxel>
-void verifyPrimalExistingVoxelsV(Skeleton skeleton, std::string name) {
-  std::array<Point, 1> vertices;
-  vertices[0] = Point{1, 1, 1};
-  Cell<0> v(vertices, 0);
-
-  std::vector<Voxel> voxels;
-  skeleton.template getCorrespondingVoxelsIn<0,Shape::CORE>(v, voxels);
-  ASSERT_EQ(2, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0] ||
-              Voxel(Point{0, 0, 0}) == voxels[1])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<0,Shape::MAIN_SHAPE>(v, voxels);
-  ASSERT_EQ(3, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0] ||
-              Voxel(Point{0, 0, 0}) == voxels[1] ||
-              Voxel(Point{0, 0, 0}) == voxels[2])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1] ||
-              Voxel(Point{1, 1, 1}) == voxels[2])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0] ||
-              Voxel(Point{0, 1, 0}) == voxels[1] ||
-              Voxel(Point{0, 1, 0}) == voxels[2])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << ").";
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<0,Shape::NEIGHBORHOOD>(v, voxels);
-  ASSERT_EQ(3, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0] ||
-              Voxel(Point{0, 0, 0}) == voxels[1] ||
-              Voxel(Point{0, 0, 0}) == voxels[2])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1] ||
-              Voxel(Point{1, 1, 1}) == voxels[2])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0] ||
-              Voxel(Point{0, 1, 0}) == voxels[1] ||
-              Voxel(Point{0, 1, 0}) == voxels[2])
-      << name << "::v wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << ").";
-}
-
-template <class Skeleton, class Voxel>
-void verifyPrimalSurroundingVoxelsE(std::string name) {
-  std::array<Point, 2> vertices;
-  vertices[0] = Point{0, 1, 1};
-  vertices[1] = Point{1, 1, 1};
-  Cell<1> e(vertices, 0);
-
-  std::array<Voxel, 4> voxels;
-  Skeleton::getCorrespondingVoxels(e, voxels);
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0] ||
-              Voxel(Point{0, 0, 0}) == voxels[1] ||
-              Voxel(Point{0, 0, 0}) == voxels[2] ||
-              Voxel(Point{0, 0, 0}) == voxels[3])
-      << name << "::e wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0] ||
-              Voxel(Point{0, 1, 0}) == voxels[1] ||
-              Voxel(Point{0, 1, 0}) == voxels[2] ||
-              Voxel(Point{0, 1, 0}) == voxels[3])
-      << name << "::e wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 0, 1}) == voxels[0] ||
-              Voxel(Point{0, 0, 1}) == voxels[1] ||
-              Voxel(Point{0, 0, 1}) == voxels[2] ||
-              Voxel(Point{0, 0, 1}) == voxels[3])
-      << name << "::e wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1] ||
-              Voxel(Point{0, 1, 1}) == voxels[2] ||
-              Voxel(Point{0, 1, 1}) == voxels[3])
-      << name << "::e wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-}
-
-template <class Skeleton, class Shape, class Voxel>
-void verifyPrimalExistingVoxelsE(Skeleton skeleton, std::string name) {
-  std::array<Point, 2> vertices;
-  vertices[0] = Point{0, 1, 1};
-  vertices[1] = Point{1, 1, 1};
-  Cell<1> e(vertices, 0);
-
-  std::vector<Voxel> voxels;
-  skeleton.template getCorrespondingVoxelsIn<1,Shape::CORE>(e, voxels);
-  ASSERT_EQ(1, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0])
-      << name << "::e wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<1,Shape::MAIN_SHAPE>(e, voxels);
-  ASSERT_EQ(2, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0] ||
-              Voxel(Point{0, 0, 0}) == voxels[1])
-      << name << "::e wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0] ||
-              Voxel(Point{0, 1, 0}) == voxels[1])
-      << name << "::e wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<1,Shape::NEIGHBORHOOD>(e, voxels);
-  ASSERT_EQ(2, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0] ||
-              Voxel(Point{0, 0, 0}) == voxels[1])
-      << name << "::e wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0] ||
-              Voxel(Point{0, 1, 0}) == voxels[1])
-      << name << "::e wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-}
-
-template <class Skeleton, class Voxel>
-void verifyPrimalSurroundingVoxelsS(std::string name) {
-  std::array<Point, 4> vertices;
-  vertices[0] = Point{0, 1, 0};
-  vertices[1] = Point{1, 1, 0};
-  vertices[2] = Point{0, 1, 1};
-  vertices[3] = Point{1, 1, 1};
-  Cell<2> s1(vertices, 0);
-  vertices[0] = Point{1, 1, 2};
-  vertices[1] = Point{2, 1, 2};
-  vertices[2] = Point{1, 1, 3};
-  vertices[3] = Point{2, 1, 3};
-  Cell<2> s2(vertices, 0);
-
-  std::array<Voxel, 2> voxels;
-  Skeleton::getCorrespondingVoxels(s1, voxels);
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0] ||
-              Voxel(Point{0, 0, 0}) == voxels[1])
-      << name << "::s1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0] ||
-              Voxel(Point{0, 1, 0}) == voxels[1])
-      << name << "::s1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-
-  Skeleton::getCorrespondingVoxels(s2, voxels);
-  ASSERT_TRUE(Voxel(Point{1, 0, 2}) == voxels[0] ||
-              Voxel(Point{1, 0, 2}) == voxels[1])
-      << name << "::s2 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 2}) == voxels[0] ||
-              Voxel(Point{1, 1, 2}) == voxels[1])
-      << name << "::s2 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-}
-
-template <class Skeleton, class Shape, class Voxel>
-void verifyPrimalExistingVoxelsS(Skeleton skeleton, std::string name) {
-  std::array<Point, 4> vertices;
-  vertices[0] = Point{0, 1, 0};
-  vertices[1] = Point{1, 1, 0};
-  vertices[2] = Point{0, 1, 1};
-  vertices[3] = Point{1, 1, 1};
-  Cell<2> s1(vertices, 0);
-  vertices[0] = Point{1, 1, 2};
-  vertices[1] = Point{2, 1, 2};
-  vertices[2] = Point{1, 1, 3};
-  vertices[3] = Point{2, 1, 3};
-  Cell<2> s2(vertices, 0);
-
-  std::vector<Voxel> voxels;
-  skeleton.template getCorrespondingVoxelsIn<2,Shape::CORE>(s1, voxels);
-  ASSERT_EQ(1, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0])
-      << name << "::s1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<2,Shape::MAIN_SHAPE>(s1, voxels);
-  ASSERT_EQ(2, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0] ||
-              Voxel(Point{0, 0, 0}) == voxels[1])
-      << name << "::s1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0] ||
-              Voxel(Point{0, 1, 0}) == voxels[1])
-      << name << "::s1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<2,Shape::NEIGHBORHOOD>(s1, voxels);
-  ASSERT_EQ(2, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 0}) == voxels[0] ||
-              Voxel(Point{0, 0, 0}) == voxels[1])
-      << name << "::s1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0] ||
-              Voxel(Point{0, 1, 0}) == voxels[1])
-      << name << "::s1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<2,Shape::CORE>(s2, voxels);
-  ASSERT_EQ(0, voxels.size());
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<2,Shape::MAIN_SHAPE>(s2, voxels);
-  ASSERT_EQ(0, voxels.size());
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<2,Shape::NEIGHBORHOOD>(s2, voxels);
-  ASSERT_EQ(1, voxels.size());
-  ASSERT_TRUE(Voxel(Point{1, 0, 2}) == voxels[0])
-      << name << "::s2 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-}
-
-template <class Skeleton, class Voxel>
-void verifyPrimalSurroundingVoxelsC(std::string name) {
-  std::array<Point, 8> vertices;
-  vertices[0] = Point{0, 1, 0};
-  vertices[1] = Point{0, 2, 0};
-  vertices[2] = Point{0, 1, 1};
-  vertices[3] = Point{0, 2, 1};
-  vertices[4] = Point{1, 1, 0};
-  vertices[5] = Point{1, 2, 0};
-  vertices[6] = Point{1, 1, 1};
-  vertices[7] = Point{1, 2, 1};
-  Cell<3> c1(vertices, 0);
-  vertices[0] = Point{0, 0, 1};
-  vertices[1] = Point{0, 1, 1};
-  vertices[2] = Point{0, 0, 2};
-  vertices[3] = Point{0, 1, 2};
-  vertices[4] = Point{1, 0, 1};
-  vertices[5] = Point{1, 1, 1};
-  vertices[6] = Point{1, 0, 2};
-  vertices[7] = Point{1, 1, 2};
-  Cell<3> c2(vertices, 0);
-
-  std::array<Voxel, 1> voxels;
-  Skeleton::getCorrespondingVoxels(c1, voxels);
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0])
-      << name << "::c1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-
-  Skeleton::getCorrespondingVoxels(c2, voxels);
-  ASSERT_TRUE(Voxel(Point{0, 0, 1}) == voxels[0])
-      << name << "::c2 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-}
-
-template <class Skeleton, class Shape, class Voxel>
-void verifyPrimalExistingVoxelsC(Skeleton skeleton, std::string name) {
-  std::array<Point, 8> vertices;
-  vertices[0] = Point{0, 1, 0};
-  vertices[1] = Point{0, 2, 0};
-  vertices[2] = Point{0, 1, 1};
-  vertices[3] = Point{0, 2, 1};
-  vertices[4] = Point{1, 1, 0};
-  vertices[5] = Point{1, 2, 0};
-  vertices[6] = Point{1, 1, 1};
-  vertices[7] = Point{1, 2, 1};
-  Cell<3> c1(vertices, 0);
-  vertices[0] = Point{0, 0, 1};
-  vertices[1] = Point{0, 1, 1};
-  vertices[2] = Point{0, 0, 2};
-  vertices[3] = Point{0, 1, 2};
-  vertices[4] = Point{1, 0, 1};
-  vertices[5] = Point{1, 1, 1};
-  vertices[6] = Point{1, 0, 2};
-  vertices[7] = Point{1, 1, 2};
-  Cell<3> c2(vertices, 0);
-
-  std::vector<Voxel> voxels;
-  skeleton.template getCorrespondingVoxelsIn<3,Shape::CORE>(c1, voxels);
-  ASSERT_EQ(0, voxels.size());
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<3,Shape::MAIN_SHAPE>(c1, voxels);
-  ASSERT_EQ(1, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0])
-      << name << "::c1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<3,Shape::NEIGHBORHOOD>(c1, voxels);
-  ASSERT_EQ(1, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 1, 0}) == voxels[0])
-      << name << "::c1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<3,Shape::CORE>(c2, voxels);
-  ASSERT_EQ(0, voxels.size());
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<3,Shape::MAIN_SHAPE>(c2, voxels);
-  ASSERT_EQ(0, voxels.size());
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<3,Shape::NEIGHBORHOOD>(c2, voxels);
-  ASSERT_EQ(0, voxels.size());
-}
-
-template <class Shape, class Skeleton, class Voxel>
-void verifyDualCellVoxelCorrespondance(std::string name) {
-  std::vector<Voxel> voxels;
-  std::vector<typename Shape::Level> minLevels;
-
-  buildExample1SmallTranslated<Shape,Voxel>(voxels, minLevels);
-
-  Shape shape(voxels, minLevels);
-  Skeleton skeleton(shape);
-
-  verifyDualSurroundingVoxelsV<Skeleton, Voxel>(name + "::Vertex");
-  verifyDualExistingVoxelsV<Skeleton, Shape, Voxel>(skeleton,
-                                                    name + "::Vertex");
-  verifyDualSurroundingVoxelsE<Skeleton, Voxel>(name + "::Edge");
-  verifyDualExistingVoxelsE<Skeleton, Shape, Voxel>(skeleton, name + "::Edge");
-  verifyDualSurroundingVoxelsS<Skeleton, Voxel>(name + "::Square");
-  verifyDualExistingVoxelsS<Skeleton, Shape, Voxel>(skeleton,
-                                                    name + "::Square");
-  verifyDualSurroundingVoxelsC<Skeleton, Voxel>(name + "::Cube");
-  verifyDualExistingVoxelsC<Skeleton, Shape, Voxel>(skeleton, name + "::Cube");
-}
-
-template <class Skeleton, class Voxel>
-void verifyDualSurroundingVoxelsV(std::string name) {
-  std::array<Point, 1> vertices;
-  vertices[0] = Point{1, 1, 1};
-  Cell<0> v1(vertices, 0);
-  vertices[0] = Point{0, 1, 0};
-  Cell<0> v2(vertices, 0);
-
-  std::array<Voxel, 1> voxels;
-  Skeleton::getCorrespondingVoxels(v1, voxels);
-  ASSERT_EQ(Voxel(Point{1, 1, 1}), voxels[0])
-      << name << "::v1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-
-  Skeleton::getCorrespondingVoxels(v2, voxels);
-  ASSERT_EQ(Voxel(Point{0, 1, 0}), voxels[0])
-      << name << "::v2 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-}
-
-template <class Skeleton, class Shape, class Voxel>
-void verifyDualExistingVoxelsV(Skeleton skeleton, std::string name) {
-  std::array<Point, 1> vertices;
-  vertices[0] = Point{1, 1, 1};
-  Cell<0> v1(vertices, 0);
-  vertices[0] = Point{0, 1, 0};
-  Cell<0> v2(vertices, 0);
-
-  std::vector<Voxel> voxels;
-  skeleton.template getCorrespondingVoxelsIn<0,Shape::CORE>(v1, voxels);
-  ASSERT_EQ(Voxel(Point{1, 1, 1}), voxels[0])
-      << name << "::v1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<0,Shape::MAIN_SHAPE>(v1, voxels);
-  ASSERT_EQ(Voxel(Point{1, 1, 1}), voxels[0])
-      << name << "::v1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<0,Shape::NEIGHBORHOOD>(v1, voxels);
-  ASSERT_EQ(Voxel(Point{1, 1, 1}), voxels[0])
-      << name << "::v1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<0,Shape::CORE>(v2, voxels);
-  ASSERT_EQ(0, voxels.size())
-      << name << "::v2 should not have existing corresponding voxels).";
-}
-
-template <class Skeleton, class Voxel>
-void verifyDualSurroundingVoxelsE(std::string name) {
-  std::array<Point, 2> vertices;
-  vertices[0] = Point{0, 1, 1};
-  vertices[1] = Point{0, 1, 2};
-  Cell<1> e1(vertices, 0);
-  vertices[0] = Point{0, 1, 1};
-  vertices[1] = Point{1, 1, 1};
-  Cell<1> e2(vertices, 0);
-
-  std::array<Voxel, 2> voxels;
-  Skeleton::getCorrespondingVoxels(e1, voxels);
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 2}) == voxels[0] ||
-              Voxel(Point{0, 1, 2}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-
-  Skeleton::getCorrespondingVoxels(e2, voxels);
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1])
-      << name << "::e2 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1])
-      << name << "::e2 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-}
-
-template <class Skeleton, class Shape, class Voxel>
-void verifyDualExistingVoxelsE(Skeleton skeleton, std::string name) {
-  std::array<Point, 2> vertices;
-  vertices[0] = Point{0, 1, 1};
-  vertices[1] = Point{0, 1, 2};
-  Cell<1> e1(vertices, 0);
-  vertices[0] = Point{0, 1, 1};
-  vertices[1] = Point{1, 1, 1};
-  Cell<1> e2(vertices, 0);
-
-  std::vector<Voxel> voxels;
-  skeleton.template getCorrespondingVoxelsIn<1,Shape::CORE>(e1, voxels);
-  ASSERT_EQ(1, voxels.size()) << name << "::e1 has " << voxels.size()
-                              << " voxels in core instead of 1.";
-  ASSERT_EQ(Voxel(Point{0, 1, 1}), voxels[0])
-      << name << "::e1 wrong corresponding voxel in core: (" << voxels[0][0]
-      << ", " << voxels[0][1] << ", " << voxels[0][2] << ").";
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<1,Shape::MAIN_SHAPE>(e1, voxels);
-  ASSERT_EQ(2, voxels.size()) << name << "::e1 has " << voxels.size()
-                              << " voxels in main shape instead of 2.";
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 2}) == voxels[0] ||
-              Voxel(Point{0, 1, 2}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<1,Shape::NEIGHBORHOOD>(e1, voxels);
-  ASSERT_EQ(2, voxels.size()) << name << "::e1 has " << voxels.size()
-                              << " voxels in neighborhood instead of 2.";
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 2}) == voxels[0] ||
-              Voxel(Point{0, 1, 2}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<1,Shape::CORE>(e2, voxels);
-  ASSERT_EQ(2, voxels.size()) << name << "::e1 has " << voxels.size()
-                              << " voxels in core instead of 1.";
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<1,Shape::MAIN_SHAPE>(e2, voxels);
-  ASSERT_EQ(2, voxels.size()) << name << "::e1 has " << voxels.size()
-                              << " voxels in main shape instead of 2.";
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<1,Shape::NEIGHBORHOOD>(e2, voxels);
-  ASSERT_EQ(2, voxels.size()) << name << "::e1 has " << voxels.size()
-                              << " voxels in neighborhood instead of 2.";
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1])
-      << name << "::e1 wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-}
-
-template <class Skeleton, class Voxel>
-void verifyDualSurroundingVoxelsS(std::string name) {
-  std::array<Point, 4> vertices;
-  vertices[0] = Point{1, 0, 1};
-  vertices[1] = Point{1, 1, 1};
-  vertices[2] = Point{1, 0, 2};
-  vertices[3] = Point{1, 1, 2};
-  Cell<2> s(vertices, 0);
-
-  std::array<Voxel, 4> voxels;
-  Skeleton::getCorrespondingVoxels(s, voxels);
-  ASSERT_TRUE(Voxel(Point{1, 0, 1}) == voxels[0] ||
-              Voxel(Point{1, 0, 1}) == voxels[1] ||
-              Voxel(Point{1, 0, 1}) == voxels[2] ||
-              Voxel(Point{1, 0, 1}) == voxels[3])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1] ||
-              Voxel(Point{1, 1, 1}) == voxels[2] ||
-              Voxel(Point{1, 1, 1}) == voxels[3])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 0, 2}) == voxels[0] ||
-              Voxel(Point{1, 0, 2}) == voxels[1] ||
-              Voxel(Point{1, 0, 2}) == voxels[2] ||
-              Voxel(Point{1, 0, 2}) == voxels[3])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 2}) == voxels[0] ||
-              Voxel(Point{1, 1, 2}) == voxels[1] ||
-              Voxel(Point{1, 1, 2}) == voxels[2] ||
-              Voxel(Point{1, 1, 2}) == voxels[3])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-}
-
-template <class Skeleton, class Shape, class Voxel>
-void verifyDualExistingVoxelsS(Skeleton skeleton, std::string name) {
-  std::array<Point, 4> vertices;
-  vertices[0] = Point{1, 0, 1};
-  vertices[1] = Point{1, 1, 1};
-  vertices[2] = Point{1, 0, 2};
-  vertices[3] = Point{1, 1, 2};
-  Cell<2> s(vertices, 0);
-
-  std::vector<Voxel> voxels;
-  skeleton.template getCorrespondingVoxelsIn<2,Shape::CORE>(s, voxels);
-  ASSERT_EQ(1, voxels.size());
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<2,Shape::MAIN_SHAPE>(s, voxels);
-  ASSERT_EQ(3, voxels.size());
-  ASSERT_TRUE(Voxel(Point{1, 0, 1}) == voxels[0] ||
-              Voxel(Point{1, 0, 1}) == voxels[1] ||
-              Voxel(Point{1, 0, 1}) == voxels[2])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1] ||
-              Voxel(Point{1, 1, 1}) == voxels[2])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 2}) == voxels[0] ||
-              Voxel(Point{1, 1, 2}) == voxels[1] ||
-              Voxel(Point{1, 1, 2}) == voxels[2])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<2,Shape::NEIGHBORHOOD>(s, voxels);
-  ASSERT_EQ(4, voxels.size());
-  ASSERT_TRUE(Voxel(Point{1, 0, 1}) == voxels[0] ||
-              Voxel(Point{1, 0, 1}) == voxels[1] ||
-              Voxel(Point{1, 0, 1}) == voxels[2] ||
-              Voxel(Point{1, 0, 1}) == voxels[3])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1] ||
-              Voxel(Point{1, 1, 1}) == voxels[2] ||
-              Voxel(Point{1, 1, 1}) == voxels[3])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 0, 2}) == voxels[0] ||
-              Voxel(Point{1, 0, 2}) == voxels[1] ||
-              Voxel(Point{1, 0, 2}) == voxels[2] ||
-              Voxel(Point{1, 0, 2}) == voxels[3])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 2}) == voxels[0] ||
-              Voxel(Point{1, 1, 2}) == voxels[1] ||
-              Voxel(Point{1, 1, 2}) == voxels[2] ||
-              Voxel(Point{1, 1, 2}) == voxels[3])
-      << name << "::s wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << ").";
-}
-
-template <class Skeleton, class Voxel>
-void verifyDualSurroundingVoxelsC(std::string name) {
-  std::array<Point, 8> vertices;
-  vertices[0] = Point{0, 0, 1};
-  vertices[1] = Point{0, 1, 1};
-  vertices[2] = Point{0, 0, 2};
-  vertices[3] = Point{0, 1, 2};
-  vertices[4] = Point{1, 0, 1};
-  vertices[5] = Point{1, 1, 1};
-  vertices[6] = Point{1, 0, 2};
-  vertices[7] = Point{1, 1, 2};
-  Cell<3> c(vertices, 0);
-
-  std::array<Voxel, 8> voxels;
-  Skeleton::getCorrespondingVoxels(c, voxels);
-  ASSERT_TRUE(Voxel(Point{0, 0, 1}) == voxels[0] ||
-              Voxel(Point{0, 0, 1}) == voxels[1] ||
-              Voxel(Point{0, 0, 1}) == voxels[2] ||
-              Voxel(Point{0, 0, 1}) == voxels[3] ||
-              Voxel(Point{0, 0, 1}) == voxels[4] ||
-              Voxel(Point{0, 0, 1}) == voxels[5] ||
-              Voxel(Point{0, 0, 1}) == voxels[6] ||
-              Voxel(Point{0, 0, 1}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1] ||
-              Voxel(Point{0, 1, 1}) == voxels[2] ||
-              Voxel(Point{0, 1, 1}) == voxels[3] ||
-              Voxel(Point{0, 1, 1}) == voxels[4] ||
-              Voxel(Point{0, 1, 1}) == voxels[5] ||
-              Voxel(Point{0, 1, 1}) == voxels[6] ||
-              Voxel(Point{0, 1, 1}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 0, 2}) == voxels[0] ||
-              Voxel(Point{0, 0, 2}) == voxels[1] ||
-              Voxel(Point{0, 0, 2}) == voxels[2] ||
-              Voxel(Point{0, 0, 2}) == voxels[3] ||
-              Voxel(Point{0, 0, 2}) == voxels[4] ||
-              Voxel(Point{0, 0, 2}) == voxels[5] ||
-              Voxel(Point{0, 0, 2}) == voxels[6] ||
-              Voxel(Point{0, 0, 2}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 2}) == voxels[0] ||
-              Voxel(Point{0, 1, 2}) == voxels[1] ||
-              Voxel(Point{0, 1, 2}) == voxels[2] ||
-              Voxel(Point{0, 1, 2}) == voxels[3] ||
-              Voxel(Point{0, 1, 2}) == voxels[4] ||
-              Voxel(Point{0, 1, 2}) == voxels[5] ||
-              Voxel(Point{0, 1, 2}) == voxels[6] ||
-              Voxel(Point{0, 1, 2}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 0, 1}) == voxels[0] ||
-              Voxel(Point{1, 0, 1}) == voxels[1] ||
-              Voxel(Point{1, 0, 1}) == voxels[2] ||
-              Voxel(Point{1, 0, 1}) == voxels[3] ||
-              Voxel(Point{1, 0, 1}) == voxels[4] ||
-              Voxel(Point{1, 0, 1}) == voxels[5] ||
-              Voxel(Point{1, 0, 1}) == voxels[6] ||
-              Voxel(Point{1, 0, 1}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1] ||
-              Voxel(Point{1, 1, 1}) == voxels[2] ||
-              Voxel(Point{1, 1, 1}) == voxels[3] ||
-              Voxel(Point{1, 1, 1}) == voxels[4] ||
-              Voxel(Point{1, 1, 1}) == voxels[5] ||
-              Voxel(Point{1, 1, 1}) == voxels[6] ||
-              Voxel(Point{1, 1, 1}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 0, 2}) == voxels[0] ||
-              Voxel(Point{1, 0, 2}) == voxels[1] ||
-              Voxel(Point{1, 0, 2}) == voxels[2] ||
-              Voxel(Point{1, 0, 2}) == voxels[3] ||
-              Voxel(Point{1, 0, 2}) == voxels[4] ||
-              Voxel(Point{1, 0, 2}) == voxels[5] ||
-              Voxel(Point{1, 0, 2}) == voxels[6] ||
-              Voxel(Point{1, 0, 2}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 2}) == voxels[0] ||
-              Voxel(Point{1, 1, 2}) == voxels[1] ||
-              Voxel(Point{1, 1, 2}) == voxels[2] ||
-              Voxel(Point{1, 1, 2}) == voxels[3] ||
-              Voxel(Point{1, 1, 2}) == voxels[4] ||
-              Voxel(Point{1, 1, 2}) == voxels[5] ||
-              Voxel(Point{1, 1, 2}) == voxels[6] ||
-              Voxel(Point{1, 1, 2}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-}
-
-template <class Skeleton, class Shape, class Voxel>
-void verifyDualExistingVoxelsC(Skeleton skeleton, std::string name) {
-  std::array<Point, 8> vertices;
-  vertices[0] = Point{0, 0, 1};
-  vertices[1] = Point{0, 1, 1};
-  vertices[2] = Point{0, 0, 2};
-  vertices[3] = Point{0, 1, 2};
-  vertices[4] = Point{1, 0, 1};
-  vertices[5] = Point{1, 1, 1};
-  vertices[6] = Point{1, 0, 2};
-  vertices[7] = Point{1, 1, 2};
-  Cell<3> c(vertices, 0);
-
-  std::vector<Voxel> voxels;
-  skeleton.template getCorrespondingVoxelsIn<3,Shape::CORE>(c, voxels);
-  ASSERT_EQ(2, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<3,Shape::MAIN_SHAPE>(c, voxels);
-  ASSERT_EQ(7, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 1}) == voxels[0] ||
-              Voxel(Point{0, 0, 1}) == voxels[1] ||
-              Voxel(Point{0, 0, 1}) == voxels[2] ||
-              Voxel(Point{0, 0, 1}) == voxels[3] ||
-              Voxel(Point{0, 0, 1}) == voxels[4] ||
-              Voxel(Point{0, 0, 1}) == voxels[5] ||
-              Voxel(Point{0, 0, 1}) == voxels[6])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1] ||
-              Voxel(Point{0, 1, 1}) == voxels[2] ||
-              Voxel(Point{0, 1, 1}) == voxels[3] ||
-              Voxel(Point{0, 1, 1}) == voxels[4] ||
-              Voxel(Point{0, 1, 1}) == voxels[5] ||
-              Voxel(Point{0, 1, 1}) == voxels[6])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 0, 2}) == voxels[0] ||
-              Voxel(Point{0, 0, 2}) == voxels[1] ||
-              Voxel(Point{0, 0, 2}) == voxels[2] ||
-              Voxel(Point{0, 0, 2}) == voxels[3] ||
-              Voxel(Point{0, 0, 2}) == voxels[4] ||
-              Voxel(Point{0, 0, 2}) == voxels[5] ||
-              Voxel(Point{0, 0, 2}) == voxels[6])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 2}) == voxels[0] ||
-              Voxel(Point{0, 1, 2}) == voxels[1] ||
-              Voxel(Point{0, 1, 2}) == voxels[2] ||
-              Voxel(Point{0, 1, 2}) == voxels[3] ||
-              Voxel(Point{0, 1, 2}) == voxels[4] ||
-              Voxel(Point{0, 1, 2}) == voxels[5] ||
-              Voxel(Point{0, 1, 2}) == voxels[6])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 0, 1}) == voxels[0] ||
-              Voxel(Point{1, 0, 1}) == voxels[1] ||
-              Voxel(Point{1, 0, 1}) == voxels[2] ||
-              Voxel(Point{1, 0, 1}) == voxels[3] ||
-              Voxel(Point{1, 0, 1}) == voxels[4] ||
-              Voxel(Point{1, 0, 1}) == voxels[5] ||
-              Voxel(Point{1, 0, 1}) == voxels[6])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1] ||
-              Voxel(Point{1, 1, 1}) == voxels[2] ||
-              Voxel(Point{1, 1, 1}) == voxels[3] ||
-              Voxel(Point{1, 1, 1}) == voxels[4] ||
-              Voxel(Point{1, 1, 1}) == voxels[5] ||
-              Voxel(Point{1, 1, 1}) == voxels[6])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 2}) == voxels[0] ||
-              Voxel(Point{1, 1, 2}) == voxels[1] ||
-              Voxel(Point{1, 1, 2}) == voxels[2] ||
-              Voxel(Point{1, 1, 2}) == voxels[3] ||
-              Voxel(Point{1, 1, 2}) == voxels[4] ||
-              Voxel(Point{1, 1, 2}) == voxels[5] ||
-              Voxel(Point{1, 1, 2}) == voxels[6])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << ").";
-
-  voxels.clear();
-  skeleton.template getCorrespondingVoxelsIn<3,Shape::NEIGHBORHOOD>(c, voxels);
-  ASSERT_EQ(8, voxels.size());
-  ASSERT_TRUE(Voxel(Point{0, 0, 1}) == voxels[0] ||
-              Voxel(Point{0, 0, 1}) == voxels[1] ||
-              Voxel(Point{0, 0, 1}) == voxels[2] ||
-              Voxel(Point{0, 0, 1}) == voxels[3] ||
-              Voxel(Point{0, 0, 1}) == voxels[4] ||
-              Voxel(Point{0, 0, 1}) == voxels[5] ||
-              Voxel(Point{0, 0, 1}) == voxels[6] ||
-              Voxel(Point{0, 0, 1}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 1}) == voxels[0] ||
-              Voxel(Point{0, 1, 1}) == voxels[1] ||
-              Voxel(Point{0, 1, 1}) == voxels[2] ||
-              Voxel(Point{0, 1, 1}) == voxels[3] ||
-              Voxel(Point{0, 1, 1}) == voxels[4] ||
-              Voxel(Point{0, 1, 1}) == voxels[5] ||
-              Voxel(Point{0, 1, 1}) == voxels[6] ||
-              Voxel(Point{0, 1, 1}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 0, 2}) == voxels[0] ||
-              Voxel(Point{0, 0, 2}) == voxels[1] ||
-              Voxel(Point{0, 0, 2}) == voxels[2] ||
-              Voxel(Point{0, 0, 2}) == voxels[3] ||
-              Voxel(Point{0, 0, 2}) == voxels[4] ||
-              Voxel(Point{0, 0, 2}) == voxels[5] ||
-              Voxel(Point{0, 0, 2}) == voxels[6] ||
-              Voxel(Point{0, 0, 2}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{0, 1, 2}) == voxels[0] ||
-              Voxel(Point{0, 1, 2}) == voxels[1] ||
-              Voxel(Point{0, 1, 2}) == voxels[2] ||
-              Voxel(Point{0, 1, 2}) == voxels[3] ||
-              Voxel(Point{0, 1, 2}) == voxels[4] ||
-              Voxel(Point{0, 1, 2}) == voxels[5] ||
-              Voxel(Point{0, 1, 2}) == voxels[6] ||
-              Voxel(Point{0, 1, 2}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 0, 1}) == voxels[0] ||
-              Voxel(Point{1, 0, 1}) == voxels[1] ||
-              Voxel(Point{1, 0, 1}) == voxels[2] ||
-              Voxel(Point{1, 0, 1}) == voxels[3] ||
-              Voxel(Point{1, 0, 1}) == voxels[4] ||
-              Voxel(Point{1, 0, 1}) == voxels[5] ||
-              Voxel(Point{1, 0, 1}) == voxels[6] ||
-              Voxel(Point{1, 0, 1}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 1}) == voxels[0] ||
-              Voxel(Point{1, 1, 1}) == voxels[1] ||
-              Voxel(Point{1, 1, 1}) == voxels[2] ||
-              Voxel(Point{1, 1, 1}) == voxels[3] ||
-              Voxel(Point{1, 1, 1}) == voxels[4] ||
-              Voxel(Point{1, 1, 1}) == voxels[5] ||
-              Voxel(Point{1, 1, 1}) == voxels[6] ||
-              Voxel(Point{1, 1, 1}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 0, 2}) == voxels[0] ||
-              Voxel(Point{1, 0, 2}) == voxels[1] ||
-              Voxel(Point{1, 0, 2}) == voxels[2] ||
-              Voxel(Point{1, 0, 2}) == voxels[3] ||
-              Voxel(Point{1, 0, 2}) == voxels[4] ||
-              Voxel(Point{1, 0, 2}) == voxels[5] ||
-              Voxel(Point{1, 0, 2}) == voxels[6] ||
-              Voxel(Point{1, 0, 2}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
-  ASSERT_TRUE(Voxel(Point{1, 1, 2}) == voxels[0] ||
-              Voxel(Point{1, 1, 2}) == voxels[1] ||
-              Voxel(Point{1, 1, 2}) == voxels[2] ||
-              Voxel(Point{1, 1, 2}) == voxels[3] ||
-              Voxel(Point{1, 1, 2}) == voxels[4] ||
-              Voxel(Point{1, 1, 2}) == voxels[5] ||
-              Voxel(Point{1, 1, 2}) == voxels[6] ||
-              Voxel(Point{1, 1, 2}) == voxels[7])
-      << name << "::c wrong corresponding voxel: (" << voxels[0][0] << ", "
-      << voxels[0][1] << ", " << voxels[0][2] << "),(" << voxels[1][0] << ", "
-      << voxels[1][1] << ", " << voxels[1][2] << "),(" << voxels[2][0] << ", "
-      << voxels[2][1] << ", " << voxels[2][2] << "),(" << voxels[3][0] << ", "
-      << voxels[3][1] << ", " << voxels[3][2] << "),(" << voxels[4][0] << ", "
-      << voxels[4][1] << ", " << voxels[4][2] << "),(" << voxels[5][0] << ", "
-      << voxels[5][1] << ", " << voxels[5][2] << "),(" << voxels[6][0] << ", "
-      << voxels[6][1] << ", " << voxels[6][2] << "),(" << voxels[7][0] << ", "
-      << voxels[7][1] << ", " << voxels[7][2] << ").";
+TEST(SkeletonTest, VoxelIterators) {
+    Voxel v(0,0,0);
+    Voxel v2(2,2,2);
+    int count = 0;
+
+    for (VertexIterator<Voxel> it(v); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(8, count);
+
+    count = 0;
+    for (EdgeIterator<Voxel> it(v); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(12, count);
+
+    count = 0;
+    for (PositiveEdgeIterator<Voxel> it(v); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(3, count);
+
+    count = 0;
+    for (SquareIterator<Voxel> it(v); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(6, count);
+
+    count = 0;
+    for (PositiveSquareIterator<Voxel> it(v); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(3, count);
+
+    count = 0;
+    for (DualEdgeIterator<Voxel> it(v); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(3, count);
+
+    count = 0;
+    for (DualEdgeIterator<Voxel> it(v2); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(6, count);
+
+    count = 0;
+    for (DualSquareIterator<Voxel> it(v); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(3, count);
+
+    count = 0;
+    for (DualSquareIterator<Voxel> it(v2); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(12, count);
+
+    count = 0;
+    for (DualCubeIterator<Voxel> it(v); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(1, count);
+
+    count = 0;
+    for (DualCubeIterator<Voxel> it(v2); !it.isEnd(); it.next()){
+        it.getCurrentValue();
+        count++;
+    }
+    ASSERT_EQ(8, count);
+
+    std::vector<Point> coo = CubeCoordinates<Voxel>()(v);
+    ASSERT_EQ(8, coo.size());
 }

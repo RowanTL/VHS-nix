@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -48,8 +48,10 @@ class Cell {
 public:
     using vertex = PackedData;
     using vertex_container = std::array<PackedData, (1 << dim)>;
-    using boundary_container = std::array<Cell<(dim > 0 ? dim - 1 : 0)>, 2 * dim>;
-    using timestamp_type = char;
+    using boundary_container = std::array<
+            Cell<(dim > 0 ? dim - 1 : 0)>, 2 * dim
+            >;
+    using timestamp_type = unsigned int;
 
     /**
      * @brief Empty Constructor.
@@ -168,8 +170,8 @@ public:
             std::size_t seed = static_cast<std::size_t>(size);
 
             for (int i = 0; i < size; i++) {
-                seed ^= static_cast<std::size_t>(cell[i].rawData()) + 0x9e3779b9 +
-                        (seed << 6) + (seed >> 2);
+                seed ^= static_cast<std::size_t>(cell[i].rawData())
+                        + 0x9e3779b9 + (seed << 6) + (seed >> 2);
             }
             return seed;
         }
@@ -178,7 +180,30 @@ public:
     /**
      * @brief Lexicographical order for cells.
      */
-    struct CellOrder {
+    struct LexicographicalOrder {
+        bool operator()(const Cell<dim> &c1, const Cell<dim> &c2) const {
+            int size = (1 << dim);
+            for (int i = 0; i < size; ++i) {
+                if (c1[i] != c2[i])
+                    return c1[i] < c2[i];
+            }
+            return false;
+        }
+    };
+
+    /**
+     * @brief Timestamp only order for cells.
+     */
+    struct TimestampOrder {
+        bool operator()(const Cell<dim> &c1, const Cell<dim> &c2) const {
+            return c1.getTimestamp() < c2.getTimestamp();
+        }
+    };
+
+    /**
+     * @brief Filtration order for cells.
+     */
+    struct FiltrationOrder {
         bool operator()(const Cell<dim> &c1, const Cell<dim> &c2) const {
             if (c1.getTimestamp() != c2.getTimestamp())
                 return c1.getTimestamp() < c2.getTimestamp();
@@ -192,11 +217,11 @@ public:
     };
 
 private:
-    timestamp_type _timestamp;  ///< Timestamp associated to the cell.
-    vertex_container _vertices; ///< Vertices of the cell. Ordered in
-                                ///< lexicographical order on their coordinates.
-    const static unsigned int _coordShift = 17U;  ///< Shift used for the Point coordinates.
-    const static int _maxCoordSize = 65536;       ///< Maximal value for one coordinate.
+    timestamp_type _timestamp;                      ///< Timestamp associated to the cell.
+    vertex_container _vertices;                     ///< Vertices of the cell. Ordered in
+                                                    ///< lexicographical order on their coordinates.
+    const static unsigned int _coordShift = 17U;    ///< Shift used for the Point coordinates.
+    const static int _maxCoordSize = 65536;         ///< Maximal value for one coordinate.
 
     /**
      * @brief Converts a coordinate point to a vertex
@@ -207,6 +232,9 @@ private:
     static vertex::data_type _pointToVertexData(Point &p);
 };
 
+/**
+ * @brief Container for cells of dimension 0 to 3.
+ */
 struct CellContainer{
     using vertex = Cell<0>;
     using vertex_container = std::vector<vertex>;
@@ -220,6 +248,8 @@ struct CellContainer{
     using cell_container = typename std::vector<Cell<dim> >;
     template <int dim>
     using cell_iterator = typename std::vector<Cell<dim> >::iterator;
+    template <int dim>
+    using const_cell_iterator = typename std::vector<Cell<dim> >::const_iterator;
     template <int dim>
     using size_type = typename cell_container<dim>::size_type;
 
@@ -239,6 +269,7 @@ struct CellContainer{
      * @return Begin iterator.
      */
     cell_iterator<dim> begin();
+
     template <unsigned int dim>
     /**
      * @brief Returns usual end iterator.
@@ -249,11 +280,28 @@ struct CellContainer{
 
     template <unsigned int dim>
     /**
+     * @brief Returns usual begin iterator.
+     * @tparam dim Dimension of the cell.
+     * @return Begin iterator.
+     */
+    const_cell_iterator<dim> begin() const;
+
+    template <unsigned int dim>
+    /**
+     * @brief Returns usual end iterator.
+     * @tparam dim Dimension of the cell.
+     * @return End iterator.
+     */
+    const_cell_iterator<dim> end() const;
+
+    template <unsigned int dim>
+    /**
      * @brief Returns number of cells in given dimension.
      * @tparam dim Dimension of the cells.
      * @return Number of cells.
      */
     size_type<dim> getSize() const;
+
     template <unsigned int dim>
     /**
      * @brief Resize the container.
@@ -269,6 +317,7 @@ struct CellContainer{
      * @param cell Cell to insert.
      */
     void insert(Cell<dim>& cell);
+
     template <unsigned int dim>
     /**
      * @brief Inserts the given cell at given index.
@@ -282,10 +331,25 @@ struct CellContainer{
 
     template <unsigned int dim>
     /**
-     * @brief Sorts the container by lexicographical order.
-     * @tparam dim Dimension of the cell.
+     * @brief Sorts the container by lexicographical order only.
+     * @tparam dim Dimension of the cells.
      */
-    void sort();
+    void sortLexicographicaly();
+
+    template <unsigned int dim>
+    /**
+     * @brief Sorts the container by timestamp value only.
+     * @tparam dim Dimension of the cells.
+     */
+    void sortByTimestamp();
+
+    template <unsigned int dim>
+    /**
+     * @brief Sorts the container by lexicographical order
+     * and filtration values.
+     * @tparam dim Dimension of the cells.
+     */
+    void sortForFiltration();
 
     vertex_container _vertices;     ///< Vertex container.
     edge_container _edges;          ///< Edge container.
@@ -301,7 +365,9 @@ namespace std {
  * @brief Provides a std::hash function for cells.
  **/
 template<int dim> struct hash<shape_simplification::shape::Cell<dim> > {
-    std::size_t operator()(const shape_simplification::shape::Cell<dim> &c) const {
+    std::size_t operator()(
+            const shape_simplification::shape::Cell<dim> &c) const
+    {
         return shape_simplification::shape::Cell<dim>::CellHasher()(c);
     }
 };

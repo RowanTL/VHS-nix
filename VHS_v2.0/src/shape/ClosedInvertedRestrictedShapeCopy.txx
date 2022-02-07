@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -20,8 +20,8 @@
 
 /**
  * @file ClosedInvertedRestrictedShapeCopy.txx
- * Contains the implementation of the methods in the \ref ClosedInvertedRestrictedShapeCopy
- * class.
+ * Contains the implementation of the methods in the
+ * \ref ClosedInvertedRestrictedShapeCopy class.
  **/
 
 #include "ClosedInvertedRestrictedShapeCopy.h"
@@ -31,7 +31,8 @@ using namespace shape_simplification::shape;
 template <class Shape, class Voxel>
 ClosedInvertedRestrictedShapeCopy<Shape, Voxel>::ClosedInvertedRestrictedShapeCopy(
         const Shape &shape, Point &lowerBound, Point &upperBound)
-    : InvertedRestrictedShapeCopy<Shape,Voxel>(shape, lowerBound, upperBound) {
+    : InvertedRestrictedShapeCopy<Shape,Voxel>(shape, lowerBound, upperBound)
+{
     std::array<voxel_container, 3> &voxels = BaseShape<Voxel>::_getVoxels();
     int max = Voxel::getMaxCoordinateValue();
 
@@ -46,12 +47,14 @@ ClosedInvertedRestrictedShapeCopy<Shape, Voxel>::ClosedInvertedRestrictedShapeCo
             {
                 if (lowerBound[0] > 0){
                     Voxel vl(lowerBound[0] - 1, y, z);
+                    vl.setLevel(CORE);
                     voxels.at(0).insert(vl);
                     voxels.at(1).insert(vl);
                     voxels.at(2).insert(vl);
                 }
                 if (upperBound[0] < max){
                     Voxel vu(upperBound[0] + 1, y, z);
+                    vu.setLevel(CORE);
                     voxels.at(0).insert(vu);
                     voxels.at(1).insert(vu);
                     voxels.at(2).insert(vu);
@@ -71,12 +74,14 @@ ClosedInvertedRestrictedShapeCopy<Shape, Voxel>::ClosedInvertedRestrictedShapeCo
             {
                 if (lowerBound[1] > 0){
                     Voxel vl(x, lowerBound[1] - 1, z);
+                    vl.setLevel(CORE);
                     voxels.at(0).insert(vl);
                     voxels.at(1).insert(vl);
                     voxels.at(2).insert(vl);
                 }
                 if (upperBound[1] < max){
                     Voxel vu(x, upperBound[1] + 1, z);
+                    vu.setLevel(CORE);
                     voxels.at(0).insert(vu);
                     voxels.at(1).insert(vu);
                     voxels.at(2).insert(vu);
@@ -96,12 +101,14 @@ ClosedInvertedRestrictedShapeCopy<Shape, Voxel>::ClosedInvertedRestrictedShapeCo
             {
                 if (lowerBound[2] > 0){
                     Voxel vl(x, y, lowerBound[2] - 1);
+                    vl.setLevel(CORE);
                     voxels.at(0).insert(vl);
                     voxels.at(1).insert(vl);
                     voxels.at(2).insert(vl);
                 }
                 if (upperBound[2] < max){
                     Voxel vu(x, y, upperBound[2] + 1);
+                    vu.setLevel(CORE);
                     voxels.at(0).insert(vu);
                     voxels.at(1).insert(vu);
                     voxels.at(2).insert(vu);
@@ -109,10 +116,16 @@ ClosedInvertedRestrictedShapeCopy<Shape, Voxel>::ClosedInvertedRestrictedShapeCo
             }
         }
     }
+
+    std::array<unsigned int, 3> &dimensions = BaseShape<Voxel>::_getShapeDimensions();
+    dimensions[0] = upperBound[0] + 1;
+    dimensions[1] = upperBound[1] + 1;
+    dimensions[2] = upperBound[2] + 1;
 }
 
 template <class Shape, class Voxel>
-bool ClosedInvertedRestrictedShapeCopy<Shape, Voxel>::_isWithinBounds(Voxel &v) {
+bool ClosedInvertedRestrictedShapeCopy<Shape, Voxel>::_isWithinBounds(Voxel &v)
+{
     Point lowerBound = InvertedRestrictedShapeCopy<Shape, Voxel>::getLowerBound();
     Point upperBound = InvertedRestrictedShapeCopy<Shape, Voxel>::getUpperBound();
     return (v[0] >= lowerBound[0] - 1 && v[1] >= lowerBound[1] - 1 &&

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -223,8 +223,7 @@ DualSkeleton<Shape, Voxel, minDim, maxDim>::getCorrespondingVoxels(
 
 template <class Shape, class Voxel,
           unsigned int minDim, unsigned int maxDim>
-template <unsigned int dim,
-          typename DualSkeleton<Shape, Voxel, minDim, maxDim>::Level level>
+template <unsigned int dim, Level level>
 void
 DualSkeleton<Shape, Voxel, minDim, maxDim>::getCorrespondingVoxelsIn(
         Cell<dim>& cell,
@@ -233,10 +232,13 @@ DualSkeleton<Shape, Voxel, minDim, maxDim>::getCorrespondingVoxelsIn(
     constexpr unsigned int size = 1 << dim;
     Shape& shape = BSkeleton::_getShape();
     std::array<Voxel, size> allVoxels;
+    container.clear();
     getCorrespondingVoxels(cell, allVoxels);
 
     for (unsigned int i = 0; i < size; ++i) {
-        if (shape.template contains<level>(allVoxels[i]))
+        if (shape.template contains<level>(allVoxels[i][0],
+                                           allVoxels[i][1],
+                                           allVoxels[i][2]))
             container.push_back(allVoxels[i]);
     }
 }
@@ -248,9 +250,9 @@ DualSkeleton<Shape, Voxel, minDim, maxDim>::_constructDualSkeleton()
 {
     Shape &shape = BSkeleton::_getShape();
 
-    for (typename Shape::voxel_iterator it =
-         shape.template begin<Shape::NEIGHBORHOOD>();
-         it != shape.template end<Shape::NEIGHBORHOOD>(); ++it)
+    for (auto it = shape.begin();
+         it != shape.end();
+         ++it)
     {
         if constexpr (minDim == 0)
                 _insertDualVertex(*it);
@@ -272,7 +274,8 @@ void
 DualSkeleton<Shape, Voxel, minDim, maxDim>::_insertDualVertex(const Voxel &v)
 {
     std::vector<Point> coordinates(1, {v[0], v[1], v[2]});
-    vertex vertex(coordinates, BSkeleton::_getShape().getMinLevel(v));
+    vertex vertex(coordinates,
+                  BSkeleton::_getShape().getMinLevel(v[0], v[1], v[2]));
 
     BSkeleton::_insertCell(vertex);
 }
@@ -332,7 +335,7 @@ DualSkeleton<Shape, Voxel, minDim, maxDim>::_insertDualCellIfExisting(
     Shape &shape = BSkeleton::_getShape();
 
     for (unsigned int i = 0; i < size; ++i) {
-        if (shape.template contains<Shape::NEIGHBORHOOD>(adj[i]))
+        if (shape.contains(adj[i][0], adj[i][1], adj[i][2]))
             ++adjExisting;
     }
 
@@ -343,7 +346,7 @@ DualSkeleton<Shape, Voxel, minDim, maxDim>::_insertDualCellIfExisting(
         for (unsigned int j = 0; j < 3; ++j) {
             coordinates.at(i)[j] = adj[i][j];
         }
-        int tmp = shape.getMinLevel(adj[i]);
+        int tmp = shape.getMinLevel(adj[i][0], adj[i][1], adj[i][2]);
         if (timestamp < tmp)
             timestamp = tmp;
     }

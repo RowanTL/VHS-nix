@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -26,6 +26,7 @@
  **/
 
 #include "BaseShape.h"
+#include "shape/ShapeUtilities.h"
 
 namespace shape_simplification{ namespace shape {
 
@@ -38,12 +39,7 @@ template <class Voxel>
  * @tparam Voxel Voxel class used by the shape.
  **/
 class AddableShape : virtual public BaseShape<Voxel> {
-public:
-    using typename BaseShape<Voxel>::Level;
-    using BaseShape<Voxel>::CORE;
-    using BaseShape<Voxel>::MAIN_SHAPE;
-    using BaseShape<Voxel>::NEIGHBORHOOD;
-    using BaseShape<Voxel>::OUTSIDE;
+public:    
     template <Level level>
     using neighbor_iterator =
         typename BaseShape<Voxel>::template neighbor_iterator<level>;
@@ -59,14 +55,13 @@ public:
     /**
      * @brief Constructor.
      * @param voxels Vector of voxels to be inside the shape.
-     * @param minLevels The minimal level a voxel has to be inserted to.
-     * The corresponding voxel is the one with same index in @p voxels.
+     * The voxels' level has to be correctly setted.
      */
-    AddableShape(std::vector<Voxel> &voxels, std::vector<Level> &minLevels);
+    AddableShape(std::vector<Voxel> &voxels);
 
     /**
-     * @brief Test if the class has the property to add voxels to the shape after
-     * instantiation.
+     * @brief Test if the class has the property to add voxels to the shape
+     * after instantiation.
      * @return True.
      */
     static constexpr bool isAddable();

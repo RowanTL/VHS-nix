@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -40,18 +40,20 @@ RestrictedShapeCopy<Shape, Voxel>::RestrictedShapeCopy(const Shape &shape,
          ++it)
     {
         Voxel v = *it;
+        Level l = v.getLevel();
         if (_isWithinBounds(v)) {
-            if (shape.template contains<CORE>(v)) {
+            if (l == CORE) {
                 voxels.at(0).insert(v);
                 voxels.at(1).insert(v);
                 voxels.at(2).insert(v);
-            } else if (shape.template contains<MAIN_SHAPE>(v)) {
+            } else if (l == MAIN_SHAPE) {
                 voxels.at(1).insert(v);
                 voxels.at(2).insert(v);
             } else {
                 voxels.at(2).insert(v);
             }
-            std::array<unsigned int, 3> &dimensions = BaseShape<Voxel>::_getShapeDimensions();
+            std::array<unsigned int, 3> &dimensions =
+                    BaseShape<Voxel>::_getShapeDimensions();
             if (v[0] > dimensions[0])
                 dimensions[0] = v[0];
             if (v[1] > dimensions[1])

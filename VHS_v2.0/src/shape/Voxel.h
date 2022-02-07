@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -31,6 +31,7 @@
 #include <ostream>
 #include <unordered_set>
 
+#include "shape/ShapeUtilities.h"
 #include "util/PackedData.h"
 #include "util/Point.h"
 
@@ -57,17 +58,34 @@ public:
     Voxel();
 
     /**
-     * @brief Create a voxel with the specified coordinates.
-     * @param x, y, z  the coordinates of the voxel
+     * @brief Creates a voxel with the specified coordinates.
+     * @param x The x-coordinates of the voxel.
+     * @param y The y-coordinates of the voxel.
+     * @param z The z-coordinates of the voxel.
      * @pre x, y and z are all in the range [0, 65536)
      **/
     Voxel(int x, int y, int z);
+    /**
+     * @brief Creates a voxel with the specified coordinates and level.
+     * @param x The x-coordinates of the voxel.
+     * @param y The y-coordinates of the voxel.
+     * @param z The z-coordinates of the voxel.
+     * @param level Minimum level of the voxel in the shape.
+     * @pre x, y and z are all in the range [0, 65536)
+     */
+    Voxel(int x, int y, int z, Level level);
 
     /**
-     * @brief Create a voxel from a generic Point instance.
-     * @param coordinates  the coordinates of the voxel
+     * @brief Creates a voxel from a generic Point instance.
+     * @param coordinates The coordinates of the voxel.
      **/
     explicit Voxel(const Point &coordinates);
+    /**
+     * @brief Creates a voxel from a generic Point instance.
+     * @param coordinates The coordinates of the voxel.
+     * @param level Minimum level of the voxel in the shape.
+     */
+    explicit Voxel(const Point &coordinates, Level level);
 
     /**
      * @brief Return a coordiate of the voxel.
@@ -82,6 +100,17 @@ public:
      * @return Maximal possible value of a voxel coordinate.
      */
     static int getMaxCoordinateValue();
+
+    /**
+     * @brief Returns the stored level of the voxel.
+     * @return The stored level of the voxel.
+     */
+    Level getLevel() const;
+    /**
+     * @brief Sets the level of the voxel.
+     * @param level Level to store.
+     */
+    void setLevel(const Level &level);
 
     /**
      * @brief Hash function for a voxel.
@@ -99,10 +128,18 @@ private:
      */
     explicit Voxel(uint64_t packedData);
 
-    const static unsigned int _coordShift = 17U;  ///< Shift used for the Point coordinates.
-    const static int _maxCoordSize = 65536;       ///< Maximal value for one coordinate.
+    Level _level;                                   ///< Level of the voxel.
+
+    const static unsigned int _coordShift = 17U;    ///< Shift used for the Point coordinates.
+    const static int _maxCoordSize = 65536;         ///< Maximal value for one coordinate.
 };
 
+/**
+ * @brief Streams the coordinates of the voxel as string in the given output.
+ * @param outputStream Outputstream.
+ * @param voxel Voxel to stream.
+ * @return
+ */
 std::ostream &operator<<(std::ostream &outputStream, Voxel voxel);
 
 }} // namespace shape_simplification::shape
@@ -122,7 +159,9 @@ template <> struct hash<shape_simplification::shape::Voxel> {
  * @brief Provides a std::hash function for unordered sets of voxels.
  **/
 template <> struct hash<unordered_set<shape_simplification::shape::Voxel> > {
-    std::size_t operator()(const unordered_set<shape_simplification::shape::Voxel> &s) const {
+    std::size_t operator()(
+            const unordered_set<shape_simplification::shape::Voxel> &s) const
+    {
         int long long h = 0ULL;
         for (auto it = s.begin(); it != s.end(); ++it) {
             shape_simplification::shape::Voxel v = *it;

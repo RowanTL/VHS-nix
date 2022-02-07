@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -28,6 +28,7 @@
 #include <array>
 
 #include "shape/BaseShape.h"
+#include "shape/ShapeUtilities.h"
 #include "util/Point.h"
 
 namespace shape_simplification{ namespace shape {
@@ -38,19 +39,16 @@ template <class Shape, class Voxel>
 /**
  * class RestrictedShape
  * @brief Shape class which restrict a given shape instanciation to a smaller
- * cube of coordinates. It copies the corresponding voxel from a given shape and
- * inherits from \ref BaseShape.
+ * cube of coordinates. It copies the corresponding voxel from a given shape
+ * and inherits from \ref BaseShape.
  * @tparam Shape Shape class to be restricted.
  * @tparam Voxel Voxel class used by the shape.
  **/
 class RestrictedShapeCopy : virtual public BaseShape<Voxel> {
 public:
-    using Level = typename BaseShape<Voxel>::Level;
-    using BaseShape<Voxel>::CORE;
-    using BaseShape<Voxel>::MAIN_SHAPE;
-    using BaseShape<Voxel>::NEIGHBORHOOD;
-    using BaseShape<Voxel>::OUTSIDE;
-    using voxel_iterator = typename BaseShape<Voxel>::voxel_iterator;
+    template <Level level = NEIGHBORHOOD>
+    using voxel_iterator =
+        typename BaseShape<Voxel>::template voxel_iterator<level>;
     template <Level level>
     using neighbor_iterator =
         typename BaseShape<Voxel>::template neighbor_iterator<level>;
@@ -65,7 +63,8 @@ public:
      * @param lowerBound Left bottom corner of the restricted area.
      * @param upperBound Right top corner of the restricted area.
      */
-    RestrictedShapeCopy(const Shape &shape, Point &lowerBound, Point &upperBound);
+    RestrictedShapeCopy(
+            const Shape &shape, Point &lowerBound, Point &upperBound);
 
     /**
      * @brief Returns the left bottom corner of the restricted area.
