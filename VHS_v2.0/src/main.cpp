@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -38,17 +38,21 @@ void displayUsage()
     std::cout << "Lexis:\n";
     std::cout << "> nberim: number of images to load in the stacked image.\n";
     std::cout << "> in_fp: name prefix of the input images, if existing. \n"
-                 "  E.g. \"flower_\" if the files are named \"flower_xxxx.png\", \n"
-                 "  where xxxx has to be the numbering of the images with 4 digits.\n";
+                 "  E.g. \"flower_\" if the files are named \"flower_xxxx.png\""
+                 ", \n"
+                 "  where xxxx has to be the numbering of the images"
+                 " with 4 digits.\n";
     std::cout << "> in_dp: directory path where the input images are stored.\n";
     std::cout << "> out_fp: name prefix for the output images.\n";
-    std::cout << "> out_dp: directory path where the output images should be stored.\n";
+    std::cout << "> out_dp: directory path where the output images"
+                 " should be stored.\n";
     std::cout << "\n";
     std::cout << "Usage:\n";
     std::cout << "\nType of simplification (obligatory, choose only one):\n";
-    std::cout << " -s nberim inf_dp/in_fp out_dp/[out_fp]\t#Standard simplifier\n";
-    std::cout << " -f nberim inf_dp/in_fp out_dp/[out_fp]\t#Standard simplifier with "
-                 "removals first\n";
+    std::cout << " -s nberim inf_dp/in_fp out_dp/[out_fp]\t#Standard simplifier"
+                 "\n";
+    std::cout << " -f nberim inf_dp/in_fp out_dp/[out_fp]\t#Standard simplifier"
+                 " with removals first\n";
     std::cout << " -a nberim inf_dp/in_fp out_dp/[out_fp]\t#Additions only\n";
     std::cout << " -r nberim inf_dp/in_fp out_dp/[out_fp]\t#Removals only\n";
     std::cout << "\nShape related options:\n";
@@ -56,22 +60,27 @@ void displayUsage()
                  "\t\t Default value: 200.\n";
     std::cout << " -ts value\t#Grayscale threshold value for the shape.\n"
                  "\t\t Default value: 150.\n";
-    std::cout << " -tn value\t#Grayscale threshold value for the neighborhood.\n"
+    std::cout << " -tn value\t#Grayscale threshold value for"
+                 " the neighborhood.\n"
                  "\t\t Default value: 100.\n";
-    std::cout << " -opt0 value\t#Lowest number of connected components possible.\n"
+    std::cout << " -opt0 value\t#Lowest number of connected components"
+                 " possible.\n"
                  "\t\t Default value: 1.\n";
     std::cout << " -opt1 value\t#Lowest number of loops possible.\n"
                  "\t\t Default value: 0.\n";
     std::cout << " -opt2 value\t#Lowest number of voids possible.\n"
                  "\t\t Default value: 0.\n";
     std::cout << "\nSimplification related options:\n";
+    std::cout << " --pv \t\t#Fills pseudo-voids.\n";
     std::cout << " -w value\t#Width to be used for the boxes.\n"
                  "\t\t Default value: 100.\n";
     std::cout << " --noover\t#Non-overlapping boxes.\n";
-    std::cout << " -cc value\t#Maximal size of a component to be completely removed.\n"
+    std::cout << " -cc value\t#Maximal size of a component to be completely"
+                 " removed.\n"
                  "\t\t Give a negative value if no limit is wanted.\n"
                  "\t\t Default value: -1.\n";
-    std::cout << " -pc value\t#Maximum % of noise to remove (Value between 0 and 100).\n"
+    std::cout << " -pc value\t#Maximum % of noise to remove"
+                 " (Value between 0 and 100).\n"
                  "\t\t Default value: 100.\n";
     std::cout << "\nAdditional options:\n";
     std::cout << " --silent\t#Avoids output in the terminal.\n";
@@ -80,7 +89,7 @@ void displayUsage()
 }
 
 int main(int argc, char **argv) {
-    if (argc < 5 || argc > 23){
+    if (argc < 5 || argc > 24){
         displayUsage();
         return 0;
     }
@@ -94,6 +103,7 @@ int main(int argc, char **argv) {
     unsigned int boxWidth = 100;
     int ccSize = -1;
     bool noover = false;
+    bool pseudovoids = false;
 
     int i = 1;
     while (i < argc) {
@@ -105,6 +115,11 @@ int main(int argc, char **argv) {
         else if (strcmp(argv[i], "--noover") == 0)
         {
             noover = true;
+            i++;
+        }
+        else if (strcmp(argv[i], "--pv") == 0)
+        {
+            pseudovoids = true;
             i++;
         }
         else if (strcmp(argv[i], "-s") == 0)
@@ -248,7 +263,7 @@ int main(int argc, char **argv) {
     clock_t totalTime = clock();
     clock_t time = clock();
 
-    simplifier.loadPreprocessedImage(data);
+    simplifier.loadPreprocessedImage(data, pseudovoids);
     printTime(time, "Image load time: ");
 
     if (simp == S) {

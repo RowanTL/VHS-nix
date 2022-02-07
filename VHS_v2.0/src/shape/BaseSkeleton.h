@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -28,6 +28,7 @@
 #include <array>
 
 #include "shape/Cell.h"
+#include "shape/ShapeUtilities.h"
 
 namespace shape_simplification{ namespace shape {
 
@@ -59,7 +60,6 @@ public:
     using cell_container = CellContainer::cell_container<dim>;
     template <int dim>
     using cell_iterator = CellContainer::cell_iterator<dim>;
-    using Level = typename Shape::Level;
 
     /**
      * @brief Tests if the class has the property to add
@@ -124,12 +124,18 @@ public:
     unsigned int getNumberOfCellsInMainShape() const;
 
     /**
-     * @brief Returns the Euler Characteristic of the underlying cubical complex
-     * which is contained in the main shape.
-     * @return The Euler Characteristic of the underlying cubical complex in the
-     * main shape.
+     * @brief Returns the Euler Characteristic of the underlying cubical
+     * complex which is contained in the main shape.
+     * @return The Euler Characteristic of the underlying cubical complex
+     * in the main shape.
      */
     int getEulerCharacteristic() const;
+
+    /**
+     * @brief Returns the skeleton's cell container.
+     * @return Reference to the cell container.
+     */
+    const CellContainer& getCellContainer() const;
 
 protected:
     /**

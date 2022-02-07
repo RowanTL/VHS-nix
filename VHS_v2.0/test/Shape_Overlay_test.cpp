@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -23,101 +23,40 @@
  * Test file for the Shape Overlay classes.
  **/
 
-#include <algorithm>
 #include <gtest/gtest.h>
-#include <random>
 
-#include "shape/AddableShape.h"
-#include "shape/RemovableShape.h"
-#include "shape/EditableShape.h"
-#include "shape/AugmentedShape.h"
 #include "shape/ShapeOverlay.h"
 #include "shape/Voxel.h"
+#include "shape/AugmentedShape.h"
+#include "shape/EditableShape.h"
+#include "shape/ShapeUtilities.h"
 
 #include "test_examples.h"
 
-using shape_simplification::shape::AddableShape;
-using shape_simplification::shape::RemovableShape;
-using shape_simplification::shape::EditableShape;
-using shape_simplification::shape::AugmentedShape;
 using shape_simplification::shape::ShapeOverlay;
 using shape_simplification::shape::Voxel;
+using shape_simplification::shape::AugmentedShape;
+using shape_simplification::shape::EditableShape;
 
-template <class Shape, class Voxel>
-void verifyOLConstructor(std::string name);
-template <class Shape, class Voxel>
-void verifyOLAddVoxelsMethod(std::string name);
-template <class Shape, class Voxel>
-void verifyOLRemoveVoxelsMethod(std::string name);
+using Shape = AugmentedShape<EditableShape<Voxel>, Voxel>;
 
-TEST(ShapeOverlayTest, Constructor) {
-    verifyOLConstructor<
-            AugmentedShape<AddableShape<Voxel>, Voxel>,
-            Voxel>("AddableShape");
-    verifyOLConstructor<
-            AugmentedShape<RemovableShape<Voxel>, Voxel>,
-            Voxel>("RemovableShape");
-    verifyOLConstructor<
-            AugmentedShape<EditableShape<Voxel>, Voxel>,
-            Voxel>("EditableShape");
-}
-
-template <class Shape, class Voxel>
-void verifyOLConstructor(std::string name) {
-    std::vector<Voxel> voxels;
-    std::vector<typename Shape::Level> minLevels;
-
-    buildExample1<Shape,Voxel>(voxels, minLevels);
-
-    Shape shape(voxels, minLevels);
-    ShapeOverlay<Shape, Voxel> overlay(shape);
-
-    ASSERT_EQ(1, overlay.getInitialEulerCharacteristic()) << name;
-    ASSERT_EQ(2, overlay.getInitialNumberOfComponents()) << name;
-    ASSERT_EQ(1, overlay.getInitialNumberOfLoops()) << name;
-    ASSERT_EQ(0, overlay.getInitialNumberOfVoids()) << name;
-    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic()) << name;
-    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents()) << name;
-    ASSERT_EQ(1, overlay.getCurrentNumberOfLoops()) << name;
-    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids()) << name;
-}
-
-TEST(ShapeOverlayTest, AddVoxelsMethod) {
-    verifyOLAddVoxelsMethod<
-            AugmentedShape<AddableShape<Voxel>, Voxel>,
-            Voxel>("AddableShape");
-    verifyOLAddVoxelsMethod<
-            AugmentedShape<RemovableShape<Voxel>, Voxel>,
-            Voxel>("RemovableShape");
-    verifyOLAddVoxelsMethod<
-            AugmentedShape<EditableShape<Voxel>, Voxel>,
-            Voxel>("EditableShape");
-}
-
-template <class Shape, class Voxel>
-void verifyOLAddVoxelsMethod(std::string name) {
+TEST(OverlayTest, Addition) {
     std::vector<Voxel> voxels;
     typename ShapeOverlay<Shape, Voxel>::voxel_container voxelsToAdd;
-    std::vector<typename Shape::Level> minLevels;
 
-    buildExample1Small<Shape,Voxel>(voxels, minLevels);
+    buildExample1Small<Voxel>(voxels);
 
-    Voxel v14(0, 4, 2); // N
-    Voxel v15(0, 4, 1); // N
-    Voxel v16(0, 2, 0); // N
-    Voxel v17(0, 3, 0); // N
-    Voxel v18(0, 4, 0); // N
+    Voxel v14(0, 4, 2, Level::NEIGHBORHOOD); // N
+    Voxel v15(0, 4, 1, Level::NEIGHBORHOOD); // N
+    Voxel v16(0, 2, 0, Level::NEIGHBORHOOD); // N
+    Voxel v17(0, 3, 0, Level::NEIGHBORHOOD); // N
+    Voxel v18(0, 4, 0, Level::NEIGHBORHOOD); // N
 
     voxels.push_back(v14);
-    minLevels.push_back(Shape::NEIGHBORHOOD);
     voxels.push_back(v15);
-    minLevels.push_back(Shape::NEIGHBORHOOD);
     voxels.push_back(v16);
-    minLevels.push_back(Shape::NEIGHBORHOOD);
     voxels.push_back(v17);
-    minLevels.push_back(Shape::NEIGHBORHOOD);
     voxels.push_back(v18);
-    minLevels.push_back(Shape::NEIGHBORHOOD);
 
     voxelsToAdd.insert(v14);
     voxelsToAdd.insert(v15);
@@ -125,87 +64,405 @@ void verifyOLAddVoxelsMethod(std::string name) {
     voxelsToAdd.insert(v17);
     voxelsToAdd.insert(v18);
 
-    Shape shape(voxels, minLevels);
+    Shape shape(voxels);
     ShapeOverlay<Shape, Voxel> overlay(shape);
 
-    ASSERT_EQ(2, overlay.getInitialEulerCharacteristic()) << name;
-    ASSERT_EQ(2, overlay.getInitialNumberOfComponents()) << name;
-    ASSERT_EQ(0, overlay.getInitialNumberOfLoops()) << name;
-    ASSERT_EQ(0, overlay.getInitialNumberOfVoids()) << name;
-    ASSERT_EQ(2, overlay.getCurrentEulerCharacteristic()) << name;
-    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents()) << name;
-    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops()) << name;
-    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids()) << name;
+    ASSERT_EQ(2, overlay.getInitialEulerCharacteristic())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(2, overlay.getCurrentEulerCharacteristic())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "Initial Shape Overlay value.";
 
     overlay.addVoxelsInMainShape(voxelsToAdd);
 
     ASSERT_EQ(2, overlay.getInitialEulerCharacteristic())
-            << name << " after adding.";
+            << "Shape Overlay after adding.";
     ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
-            << name << " after adding.";
+            << "Shape Overlay after adding.";
     ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
-            << name << " after adding.";
+            << "Shape Overlay after adding.";
     ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
-            << name << " after adding.";
+            << "Shape Overlay after adding.";
     ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
-            << name << " after adding.";
+            << "Shape Overlay after adding.";
     ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
-            << name << " after adding.";
+            << "Shape Overlay after adding.";
     ASSERT_EQ(1, overlay.getCurrentNumberOfLoops())
-            << name << " after adding.";
+            << "Shape Overlay after adding.";
     ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
-            << name << " after adding.";
+            << "Shape Overlay after adding.";
+
+    overlay.addVoxelsInMainShapeWithH0Guarantee(voxelsToAdd);
+
+    ASSERT_EQ(2, overlay.getInitialEulerCharacteristic())
+            << "Shape Overlay after adding with H0 Guarantee.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "Shape Overlay after adding with H0 Guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
+            << "Shape Overlay after adding with H0 Guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "Shape Overlay after adding with H0 Guarantee.";
+    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
+            << "Shape Overlay after adding with H0 Guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "Shape Overlay after adding with H0 Guarantee.";
+    ASSERT_EQ(1, overlay.getCurrentNumberOfLoops())
+            << "Shape Overlay after adding with H0 Guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "Shape Overlay after adding with H0 Guarantee.";
+
+    overlay.addVoxelsInMainShapeWithH2Guarantee(voxelsToAdd);
+
+    ASSERT_EQ(2, overlay.getInitialEulerCharacteristic())
+            << "Shape Overlay after adding with H2 Guarantee.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "Shape Overlay after adding with H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
+            << "Shape Overlay after adding with H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "Shape Overlay after adding with H2 Guarantee.";
+    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
+            << "Shape Overlay after adding with H2 Guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "Shape Overlay after adding with H2 Guarantee.";
+    ASSERT_EQ(1, overlay.getCurrentNumberOfLoops())
+            << "Shape Overlay after adding with H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "Shape Overlay after adding with H2 Guarantee.";
+
+    overlay.addVoxelsInMainShapeWithH0H2Guarantee(voxelsToAdd);
+
+    ASSERT_EQ(2, overlay.getInitialEulerCharacteristic())
+            << "Shape Overlay after adding with H0H2 Guarantee.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "Shape Overlay after adding with H0H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
+            << "Shape Overlay after adding with H0H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "Shape Overlay after adding with H0H2 Guarantee.";
+    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
+            << "Shape Overlay after adding with H0H2 Guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "Shape Overlay after adding with H0H2 Guarantee.";
+    ASSERT_EQ(1, overlay.getCurrentNumberOfLoops())
+            << "Shape Overlay after adding with H0H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "Shape Overlay after adding with H0H2 Guarantee.";
+
+    ASSERT_EQ(1, overlay.addVoxelsAndReturnEulerOnly(voxelsToAdd));
+    ASSERT_EQ(2, overlay.addVoxelsAndReturnH0Only(voxelsToAdd));
+    ASSERT_EQ(0, overlay.addVoxelsAndReturnH2Only(voxelsToAdd));
 }
 
-TEST(ShapeOverlayTest, RemoveVoxelsMethod) {
-    verifyOLRemoveVoxelsMethod<
-            AugmentedShape<RemovableShape<Voxel>, Voxel>,
-            Voxel>("RemovableShape");
-    verifyOLRemoveVoxelsMethod<
-            AugmentedShape<EditableShape<Voxel>, Voxel>,
-            Voxel>("EditableShape");
-}
-
-template <class Shape, class Voxel>
-void verifyOLRemoveVoxelsMethod(std::string name) {
+TEST(OverlayTest, Removal) {
     std::vector<Voxel> voxels;
-    std::vector<typename Shape::Level> minLevels;
     typename ShapeOverlay<Shape, Voxel>::voxel_container voxelsToRemove;
 
-    buildExample1<Shape,Voxel>(voxels, minLevels);
+    buildExample1<Voxel>(voxels);
 
     voxelsToRemove.insert(Voxel(1, 1, 3));
     voxelsToRemove.insert(Voxel(1, 4, 3));
     voxelsToRemove.insert(Voxel(0, 3, 0));
 
-    Shape shape(voxels, minLevels);
+    Shape shape(voxels);
     ShapeOverlay<Shape, Voxel> overlay(shape);
 
-    ASSERT_EQ(1, overlay.getInitialEulerCharacteristic()) << name;
-    ASSERT_EQ(2, overlay.getInitialNumberOfComponents()) << name;
-    ASSERT_EQ(1, overlay.getInitialNumberOfLoops()) << name;
-    ASSERT_EQ(0, overlay.getInitialNumberOfVoids()) << name;
-    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic()) << name;
-    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents()) << name;
-    ASSERT_EQ(1, overlay.getCurrentNumberOfLoops()) << name;
-    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids()) << name;
+    ASSERT_EQ(1, overlay.getInitialEulerCharacteristic())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(1, overlay.getInitialNumberOfLoops())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(1, overlay.getCurrentNumberOfLoops())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "Initial Shape Overlay value.";
 
     overlay.removeVoxelsFromMainShape(voxelsToRemove);
 
     ASSERT_EQ(1, overlay.getInitialEulerCharacteristic())
-            << name << " after removing.";
+            << "Shape Overlay after removing.";
     ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
-            << name << " after removing.";
+            << "Shape Overlay after removing.";
     ASSERT_EQ(1, overlay.getInitialNumberOfLoops())
-            << name << " after removing.";
+            << "Shape Overlay after removing.";
     ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
-            << name << " after removing.";
+            << "Shape Overlay after removing.";
     ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
-            << name << " after removing.";
+            << "Shape Overlay after removing.";
     ASSERT_EQ(1, overlay.getCurrentNumberOfComponents())
-            << name << " after removing.";
+            << "Shape Overlay after removing.";
     ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
-            << name << " after removing.";
+            << "Shape Overlay after removing.";
     ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
-            << name << " after removing.";
+            << "Shape Overlay after removing.";
+
+    overlay.removeVoxelsFromMainShapeWithH2Guarantee(voxelsToRemove);
+
+    ASSERT_EQ(1, overlay.getInitialEulerCharacteristic())
+            << "Shape Overlay after removing with H2 Guarantee.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "Shape Overlay after removing with H2 Guarantee.";
+    ASSERT_EQ(1, overlay.getInitialNumberOfLoops())
+            << "Shape Overlay after removing with H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "Shape Overlay after removing with H2 Guarantee.";
+    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
+            << "Shape Overlay after removing with H2 Guarantee.";
+    ASSERT_EQ(1, overlay.getCurrentNumberOfComponents())
+            << "Shape Overlay after removing with H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
+            << "Shape Overlay after removing with H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "Shape Overlay after removing with H2 Guarantee.";
+
+    ASSERT_EQ(1, overlay.removeVoxelsAndReturnEulerOnly(voxelsToRemove));
+    ASSERT_EQ(1, overlay.removeVoxelsAndReturnH0Only(voxelsToRemove));
+    ASSERT_EQ(0, overlay.removeVoxelsAndReturnH2Only(voxelsToRemove));
+
+    voxelsToRemove.erase(Voxel(1, 4, 3));
+
+    overlay.removeVoxelsFromMainShapeWithH0Guarantee(voxelsToRemove);
+
+    ASSERT_EQ(1, overlay.getInitialEulerCharacteristic())
+            << "Shape Overlay after removing with H0 Guarantee.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "Shape Overlay after removing with H0 Guarantee.";
+    ASSERT_EQ(1, overlay.getInitialNumberOfLoops())
+            << "Shape Overlay after removing with H0 Guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "Shape Overlay after removing with H0 Guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentEulerCharacteristic())
+            << "Shape Overlay after removing with H0 Guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "Shape Overlay after removing with H0 Guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
+            << "Shape Overlay after removing with H0 Guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "Shape Overlay after removing with H0 Guarantee.";
+
+    overlay.removeVoxelsFromMainShapeWithH0H2Guarantee(voxelsToRemove);
+
+    ASSERT_EQ(1, overlay.getInitialEulerCharacteristic())
+            << "Shape Overlay after removing with H0H2 Guarantee.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "Shape Overlay after removing with H0H2 Guarantee.";
+    ASSERT_EQ(1, overlay.getInitialNumberOfLoops())
+            << "Shape Overlay after removing with H0H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "Shape Overlay after removing with H0H2 Guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentEulerCharacteristic())
+            << "Shape Overlay after removing with H0H2 Guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "Shape Overlay after removing with H0H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
+            << "Shape Overlay after removing with H0H2 Guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "Shape Overlay after removing with H0H2 Guarantee.";
 }
+
+TEST(OverlayTest, Save) {
+    std::vector<Voxel> voxels;
+    typename ShapeOverlay<Shape, Voxel>::voxel_container voxelsToRemove;
+    typename ShapeOverlay<Shape, Voxel>::voxel_container voxelsToAdd;
+
+    buildExample1<Voxel>(voxels);
+
+    for (int x = 10; x < 14; x++) {
+        for (int y = 10; y < 14; y++) {
+            for (int z = 10; z < 14; z++) {
+                voxels.push_back(Voxel(x, y, z, Level::NEIGHBORHOOD));
+                if (!(x > 10 && x < 13 && y > 10 && y < 13 && z > 10 && z < 13))
+                    voxelsToAdd.insert(Voxel(x, y, z));
+            }
+        }
+    }
+    voxelsToAdd.insert(Voxel(0, 3, 1));
+
+    voxelsToRemove.insert(Voxel(1, 1, 3));
+    voxelsToRemove.insert(Voxel(1, 4, 3));
+    voxelsToRemove.insert(Voxel(0, 3, 0));
+
+    Shape shape(voxels);
+    ShapeOverlay<Shape, Voxel> overlay(shape);
+
+    ASSERT_EQ(1, overlay.getInitialEulerCharacteristic())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(1, overlay.getInitialNumberOfLoops())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(1, overlay.getCurrentNumberOfLoops())
+            << "Initial Shape Overlay value.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "Initial Shape Overlay value.";
+
+    overlay.saveAddedVoxels(voxelsToAdd);
+
+    ASSERT_EQ(4, overlay.getInitialEulerCharacteristic())
+            << "After saving additions.";
+    ASSERT_EQ(3, overlay.getInitialNumberOfComponents())
+            << "After saving additions.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
+            << "After saving additions.";
+    ASSERT_EQ(1, overlay.getInitialNumberOfVoids())
+            << "After saving additions.";
+    ASSERT_EQ(4, overlay.getCurrentEulerCharacteristic())
+            << "After saving additions.";
+    ASSERT_EQ(3, overlay.getCurrentNumberOfComponents())
+            << "After saving additions.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
+            << "After saving additions.";
+    ASSERT_EQ(1, overlay.getCurrentNumberOfVoids())
+            << "After saving additions.";
+
+    overlay.clearModifications();
+    voxelsToAdd.erase(Voxel(10, 10, 10));
+
+    overlay.saveAddedVoxelsWithH2Guarantee(voxelsToAdd);
+
+    ASSERT_EQ(3, overlay.getInitialEulerCharacteristic())
+            << "After saving additions with H2 guarantee.";
+    ASSERT_EQ(3, overlay.getInitialNumberOfComponents())
+            << "After saving additions with H2 guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
+            << "After saving additions with H2 guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "After saving additions with H2 guarantee.";
+    ASSERT_EQ(3, overlay.getCurrentEulerCharacteristic())
+            << "After saving additions with H2 guarantee.";
+    ASSERT_EQ(3, overlay.getCurrentNumberOfComponents())
+            << "After saving additions with H2 guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
+            << "After saving additions with H2 guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "After saving additions with H2 guarantee.";
+
+    overlay.clearModifications();
+
+    overlay.saveRemovedVoxels(voxelsToRemove);
+
+    ASSERT_EQ(1, overlay.getInitialEulerCharacteristic())
+            << "After saving removals.";
+    ASSERT_EQ(1, overlay.getInitialNumberOfComponents())
+            << "After saving removals.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
+            << "After saving removals.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "After saving removals.";
+    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
+            << "After saving removals.";
+    ASSERT_EQ(1, overlay.getCurrentNumberOfComponents())
+            << "After saving removals.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
+            << "After saving removals.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "After saving removals.";
+
+    overlay.clearModifications();
+
+    overlay.saveRemovedVoxelsWithH2Guarantee(voxelsToRemove);
+
+    ASSERT_EQ(1, overlay.getInitialEulerCharacteristic())
+            << "After saving removals with H2 guarantee.";
+    ASSERT_EQ(1, overlay.getInitialNumberOfComponents())
+            << "After saving removals with H2 guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
+            << "After saving removals with H2 guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "After saving removals with H2 guarantee.";
+    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
+            << "After saving removals with H2 guarantee.";
+    ASSERT_EQ(1, overlay.getCurrentNumberOfComponents())
+            << "After saving removals with H2 guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
+            << "After saving removals with H2 guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "After saving removals with H2 guarantee.";
+
+    overlay.clearModifications();
+    voxelsToRemove.erase(Voxel(1, 4, 3));
+
+    overlay.saveRemovedVoxelsWithH0Guarantee(voxelsToRemove);
+
+    ASSERT_EQ(2, overlay.getInitialEulerCharacteristic())
+            << "After saving removals with H0 guarantee.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "After saving removals with H0 guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
+            << "After saving removals with H0 guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "After saving removals with H0 guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentEulerCharacteristic())
+            << "After saving removals with H0 guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "After saving removals with H0 guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
+            << "After saving removals with H0 guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "After saving removals with H0 guarantee.";
+
+    overlay.clearModifications();
+
+    overlay.saveRemovedVoxelsWithH0H2Guarantee(voxelsToRemove);
+
+    ASSERT_EQ(2, overlay.getInitialEulerCharacteristic())
+            << "After saving removals with H0H2 guarantee.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "After saving removals with H0H2 guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfLoops())
+            << "After saving removals with H0H2 guarantee.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "After saving removals with H0H2 guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentEulerCharacteristic())
+            << "After saving removals with H0H2 guarantee.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "After saving removals with H0H2 guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfLoops())
+            << "After saving removals with H0H2 guarantee.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "After saving removals with H0H2 guarantee.";
+
+    overlay.clearModifications();
+
+    ASSERT_EQ(1, overlay.getInitialEulerCharacteristic())
+            << "After clearance.";
+    ASSERT_EQ(2, overlay.getInitialNumberOfComponents())
+            << "After clearance.";
+    ASSERT_EQ(1, overlay.getInitialNumberOfLoops())
+            << "After clearance.";
+    ASSERT_EQ(0, overlay.getInitialNumberOfVoids())
+            << "After clearance.";
+    ASSERT_EQ(1, overlay.getCurrentEulerCharacteristic())
+            << "After clearance.";
+    ASSERT_EQ(2, overlay.getCurrentNumberOfComponents())
+            << "After clearance.";
+    ASSERT_EQ(1, overlay.getCurrentNumberOfLoops())
+            << "After clearance.";
+    ASSERT_EQ(0, overlay.getCurrentNumberOfVoids())
+            << "After clearance.";
+}
+

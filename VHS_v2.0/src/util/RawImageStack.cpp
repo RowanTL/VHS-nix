@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -38,7 +38,8 @@ void RawImageStack::load(
         unsigned int numberOfImages)
 {
     BaseImageStack::load(baseFilename, numberOfImages);
-    const std::array<unsigned int, 3> &dimensions = BaseImageStack::getDimensions();
+    const std::array<unsigned int, 3> &dimensions =
+            BaseImageStack::getDimensions();
     BaseImageStack::setDimensions(
                 dimensions[0] / _downsampling,
                 dimensions[1] / _downsampling,

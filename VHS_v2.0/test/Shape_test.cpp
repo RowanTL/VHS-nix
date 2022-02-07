@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -23,424 +23,527 @@
  * Test file for the Shape classes.
  **/
 
-#include <algorithm>
 #include <gtest/gtest.h>
-#include <random>
-#include <string>
-#include <unordered_map>
 #include <vector>
+#include <unordered_set>
 
-#include "shape/AddableShape.h"
-#include "shape/AugmentedShape.h"
 #include "shape/BaseShape.h"
+#include "shape/AddableShape.h"
 #include "shape/EditableShape.h"
 #include "shape/RemovableShape.h"
+#include "shape/InflationShape.h"
+#include "shape/IntensityShape.h"
 #include "shape/Voxel.h"
-#include "util/Point.h"
+#include "shape/ShapeUtilities.h"
 
 #include "test_examples.h"
 
-using shape_simplification::shape::AddableShape;
-using shape_simplification::shape::AugmentedShape;
 using shape_simplification::shape::BaseShape;
+using shape_simplification::shape::AddableShape;
 using shape_simplification::shape::EditableShape;
 using shape_simplification::shape::RemovableShape;
+using shape_simplification::shape::InflationShape;
+using shape_simplification::shape::IntensityShape;
 using shape_simplification::shape::Voxel;
-using shape_simplification::util::Point;
+using shape_simplification::shape::Level;
 
-using AugShape = AugmentedShape<AddableShape<Voxel>, Voxel>;
-
-template <class Shape, class Voxel>
-void verifyShapeVoxelNotContained(
-        Voxel v, Shape &shape, std::string name);
-template <class Shape, class Voxel>
-void verifyShapeVoxelAppearsInCore(
-        Voxel v, Shape &shape, std::string name);
-template <class Shape, class Voxel>
-void verifyShapeVoxelAppearsInMainShape(
-        Voxel v, Shape &shape, std::string name);
-template <class Shape, class Voxel>
-void verifyShapeVoxelAppearsInNeighborhood(
-        Voxel v, Shape &shape, std::string name);
-
-template <class Shape, class Voxel>
-void verifyShapeContent(
-        std::string name,
-        std::vector<Voxel> &voxels,
-        std::vector<typename Shape::Level> &minLevels,
-        std::unordered_map<Voxel,typename Shape::Level,std::hash<Voxel>> &realMinLevel);
-template <class Shape, class Voxel>
-void verifyShapeContainsMethod(std::string name);
-template <class Shape, class Voxel>
-void verifyShapeIterators(std::string name);
-template <class Shape, class Voxel>
-void verifyShapeNonEndIteratorStep(
-        typename Shape::voxel_iterator &it,
-        Shape &shape,
-        typename Shape::Level level,
-        Voxel &value,
-        std::string name);
-template <class Shape, class Voxel>
-void verifyShapeEndIteratorStep(
-        typename Shape::voxel_iterator &it,
-        Shape &shape,
-        typename Shape::Level level,
-        std::string name);
-template <class Shape, class Voxel>
-void verifyShapeAddibility(std::string name);
-template <class Shape, class Voxel>
-void verifyShapeNonAddibility(std::string name);
-template <class Shape, class Voxel>
-void verifyShapeRemovability(std::string name);
-template <class Shape, class Voxel>
-void verifyShapeNonRemovability(std::string name);
-template <class Shape, class Voxel>
-void verifyShapeMinLevelInformation(std::string name);
-
-TEST(ShapeTest, Constructors) {
-    std::mt19937 randomGenerator(0); // Repeatable seed
-    std::uniform_int_distribution<unsigned int> unisize(0, 100);
-    std::vector<Voxel> voxels;
-    std::vector<BaseShape<Voxel>::Level> minLevels;
-    std::unordered_map<Voxel, BaseShape<Voxel>::Level, std::hash<Voxel>> realMinLevel;
-
-    for (int repetition = 0; repetition < 500; repetition++) {
-        if (repetition % 100 == 0) std::cout << "loop: " << repetition << "\n";
-
-        voxels.clear();
-        minLevels.clear();
-        realMinLevel.clear();
-        unsigned int nberOfVoxels = unisize(randomGenerator);
-
-        buildRandomExample<BaseShape<Voxel>,Voxel>(
-                    nberOfVoxels, voxels, minLevels, realMinLevel);
-
-        verifyShapeContent<BaseShape<Voxel>, Voxel>("base shape", voxels, minLevels,
-                                                    realMinLevel);
-        verifyShapeContent<AddableShape<Voxel>, Voxel>("addable shape", voxels,
-                                                       minLevels, realMinLevel);
-        verifyShapeContent<RemovableShape<Voxel>, Voxel>("removable shape", voxels,
-                                                         minLevels, realMinLevel);
-        verifyShapeContent<EditableShape<Voxel>, Voxel>("editable shape", voxels,
-                                                        minLevels, realMinLevel);
-        verifyShapeContent<AugShape, Voxel>("augmented shape", voxels, minLevels,
-                                            realMinLevel);
-    }
-}
-
-template <class Shape, class Voxel>
-void verifyShapeContent(
-        std::string name,
-        std::vector<Voxel> &voxels,
-        std::vector<typename Shape::Level> &minLevels,
-        std::unordered_map<Voxel, typename Shape::Level, std::hash<Voxel> > &realMinLevel) {
-    int maxDim[3] = {0, 0, 0};
-    Shape emptyShape;
-    Shape shape(voxels, minLevels);
-
-    ASSERT_EQ(emptyShape.getShapeDimensions()[0], 0);
-    ASSERT_EQ(emptyShape.getShapeDimensions()[1], 0);
-    ASSERT_EQ(emptyShape.getShapeDimensions()[2], 0);
-
+template <class Shape, class L>
+void verifyShapeConstructor(
+        Shape shape, std::unordered_set<Voxel> &voxels, std::string name)
+{
     for (Voxel v : voxels) {
-        typename Shape::Level l = realMinLevel.at(v);
-
-        verifyShapeVoxelNotContained(v, emptyShape, "empty " + name);
-
-        if (l == Shape::CORE)
-            verifyShapeVoxelAppearsInCore(v, shape, name);
-        else if (l == Shape::MAIN_SHAPE)
-            verifyShapeVoxelAppearsInMainShape(v, shape, name);
-        else if (l == Shape::NEIGHBORHOOD)
-            verifyShapeVoxelAppearsInNeighborhood(v, shape, name);
-
-        if (v[0] > maxDim[0])
-            maxDim[0] = v[0];
-        if (v[1] > maxDim[1])
-            maxDim[1] = v[1];
-        if (v[2] > maxDim[2])
-            maxDim[2] = v[2];
+        if (v.getLevel() == Level::CORE || v.getLevel() == Level::MAIN_SHAPE)
+            ASSERT_TRUE(shape.template contains<L::MAIN_SHAPE>(
+                            v[0], v[1], v[2])) << name;
+        else
+            ASSERT_TRUE(shape.template contains<L::NEIGHBORHOOD>(
+                            v[0], v[1], v[2])) << name;
     }
 
-    ASSERT_EQ(shape.getShapeDimensions()[0], maxDim[0]);
-    ASSERT_EQ(shape.getShapeDimensions()[1], maxDim[1]);
-    ASSERT_EQ(shape.getShapeDimensions()[2], maxDim[2]);
-}
-
-TEST(ShapeTest, ContainsMethod) {
-    verifyShapeContainsMethod<BaseShape<Voxel>, Voxel>("base shape");
-    verifyShapeContainsMethod<AddableShape<Voxel>, Voxel>("addable shape");
-    verifyShapeContainsMethod<RemovableShape<Voxel>, Voxel>("removable shape");
-    verifyShapeContainsMethod<EditableShape<Voxel>, Voxel>("editable shape");
-    verifyShapeContainsMethod<AugShape, Voxel>("augmented shape");
-}
-
-template <class Shape, class Voxel>
-void verifyShapeContainsMethod(std::string name) {
-    std::vector<Voxel> voxels;
-    std::vector<typename Shape::Level> minLevels;
-
-    buildMiniExample2<Shape,Voxel>(voxels, minLevels);
-
-    Shape shape(voxels, minLevels);
-
-    verifyShapeVoxelAppearsInCore(Voxel(0, 0, 0), shape, name);
-    verifyShapeVoxelAppearsInNeighborhood(Voxel(0, 1, 0), shape, name);
-    verifyShapeVoxelAppearsInMainShape(Voxel(2, 0, 3), shape, name);
-    verifyShapeVoxelAppearsInCore(Voxel(0, 2, 1), shape, name);
-    verifyShapeVoxelNotContained(Voxel(0, 0, 4), shape, name);
-}
-
-TEST(ShapeTest, Iterators) {
-    verifyShapeIterators<BaseShape<Voxel>, Voxel>("base shape");
-    verifyShapeIterators<AddableShape<Voxel>, Voxel>("addable shape");
-    verifyShapeIterators<RemovableShape<Voxel>, Voxel>("removable shape");
-    verifyShapeIterators<EditableShape<Voxel>, Voxel>("editable shape");
-    verifyShapeIterators<AugShape, Voxel>("augmented shape");
-}
-
-template <class Shape, class Voxel>
-void verifyShapeIterators(std::string name) {
-    std::vector<Voxel> voxels;
-    std::vector<typename Shape::Level> minLevels;
     int count = 0;
-
-    buildMiniExample2<Shape,Voxel>(voxels, minLevels);
-
-    Shape shape(voxels, minLevels);
-
-    for (typename Shape::voxel_iterator it = shape.template begin<Shape::CORE>();
-         it != shape.template end<Shape::CORE>(); it++){
-        ++count;
+    for (auto it = shape.template begin<L::MAIN_SHAPE>();
+         it != shape.template end<L::MAIN_SHAPE>();
+         it++)
+    {
+        Voxel v = *it;
+        ASSERT_TRUE(voxels.find(v) != voxels.end()) << name;
+        ASSERT_TRUE(v.getLevel() == Level::MAIN_SHAPE ||
+                    v.getLevel() == Level::CORE ||
+                    v.getLevel() == Level::NOT_SPECIFIED) << name;
+        count++;
     }
-    ASSERT_EQ(count, 2) << name;
+    ASSERT_EQ(11, count) << name;
+
     count = 0;
-    for (typename Shape::voxel_iterator it = shape.template begin<Shape::MAIN_SHAPE>();
-         it != shape.template end<Shape::MAIN_SHAPE>(); it++){
-        ++count;
+    for (auto it = shape.template begin<L::NEIGHBORHOOD>();
+         it != shape.template end<L::NEIGHBORHOOD>();
+         it++)
+    {
+        Voxel v = *it;
+        ASSERT_TRUE(voxels.find(v) != voxels.end()) << name;
+        ASSERT_TRUE(v.getLevel() == Level::NEIGHBORHOOD ||
+                    v.getLevel() == Level::MAIN_SHAPE ||
+                    v.getLevel() == Level::CORE ||
+                    v.getLevel() == Level::NOT_SPECIFIED) << name;
+        count++;
     }
-    ASSERT_EQ(count, 3) << name;
+    ASSERT_EQ(14, count) << name;
+
+    ASSERT_EQ(1, shape.getShapeDimensions()[0]) << name;
+    ASSERT_EQ(4, shape.getShapeDimensions()[1]) << name;
+    ASSERT_EQ(3, shape.getShapeDimensions()[2]) << name;
+
+    ASSERT_EQ(11, shape.getShapeSize()) << name;
+
+    shape.clear();
+    ASSERT_EQ(0, shape.getShapeSize()) << name;
+}
+
+TEST(ShapeTest, Constructor) {
+    std::vector<Voxel> voxels;
+    std::vector<png::image<png::gray_pixel> > stack;
+    std::unordered_set<Voxel> voxelSet;
+    ProcessedImageStack proc;
+
+    buildExample1Small<Voxel>(voxels);
+    buildExample1SmallAsStack<Voxel>(stack);
+    proc.load(stack);
+
+    for (Voxel v : voxels) voxelSet.insert(v);
+
+    verifyShapeConstructor<BaseShape<Voxel>,Level>(
+                BaseShape<Voxel>(voxels), voxelSet, "BaseShape");
+    verifyShapeConstructor<AddableShape<Voxel>,Level>(
+                AddableShape<Voxel>(voxels), voxelSet, "AddableShape");
+    verifyShapeConstructor<RemovableShape<Voxel>,Level>(
+                RemovableShape<Voxel>(voxels), voxelSet, "RemovableShape");
+    verifyShapeConstructor<EditableShape<Voxel>,Level>(
+                EditableShape<Voxel>(voxels), voxelSet, "EditableShape");
+    verifyShapeConstructor<InflationShape,Level>(
+                InflationShape(proc, 0, true), voxelSet, "InflationShape");
+    verifyShapeConstructor<IntensityShape,IntensityShape::Level>(
+                IntensityShape(proc, 100), voxelSet, "IntensityShape");
+}
+
+template <class Shape>
+void verifyShapeAddability(Shape shape, std::string name)
+{
+    ASSERT_TRUE(shape.isAddable()) << name;
+
+    ASSERT_FALSE(shape.template contains<Level::NEIGHBORHOOD>(0, 4, 0)) << name;
+
+    shape.template addVoxel<Level::CORE>(
+                Voxel(0, 4, 0, Level::CORE));
+
+    ASSERT_TRUE(shape.template contains<Level::NEIGHBORHOOD>(0, 4, 0)) << name;
+    ASSERT_TRUE(shape.template contains<Level::MAIN_SHAPE>(0, 4, 0)) << name;
+    ASSERT_TRUE(shape.template contains<Level::CORE>(0, 4, 0)) << name;
+
+    ASSERT_FALSE(shape.template contains<Level::NEIGHBORHOOD>(0, 3, 0)) << name;
+
+    shape.template addVoxel<Level::MAIN_SHAPE>(
+                Voxel(0, 3, 0, Level::MAIN_SHAPE));
+
+    ASSERT_TRUE(shape.template contains<Level::NEIGHBORHOOD>(0, 3, 0)) << name;
+    ASSERT_TRUE(shape.template contains<Level::MAIN_SHAPE>(0, 3, 0)) << name;
+    ASSERT_FALSE(shape.template contains<Level::CORE>(0, 3, 0)) << name;
+
+    ASSERT_TRUE(shape.template contains<Level::NEIGHBORHOOD>(0, 2, 1)) << name;
+    ASSERT_FALSE(shape.template contains<Level::CORE>(0, 2, 1)) << name;
+
+    shape.template addVoxel<Level::CORE>(
+                Voxel(0, 2, 1, Level::CORE));
+
+    ASSERT_TRUE(shape.template contains<Level::NEIGHBORHOOD>(0, 2, 1)) << name;
+    ASSERT_TRUE(shape.template contains<Level::MAIN_SHAPE>(0, 2, 1)) << name;
+    ASSERT_TRUE(shape.template contains<Level::CORE>(0, 2, 1)) << name;
+}
+
+template <class Shape>
+void verifyShapeNonAddability(Shape shape, std::string name)
+{
+    ASSERT_FALSE(shape.isAddable()) << name;
+}
+
+TEST(ShapeTest, Addition) {
+    std::vector<Voxel> voxels;
+    std::vector<png::image<png::gray_pixel> > stack;
+    ProcessedImageStack proc;
+
+    buildExample1Small<Voxel>(voxels);
+    buildExample1SmallAsStack<Voxel>(stack);
+    proc.load(stack);
+
+    verifyShapeNonAddability<BaseShape<Voxel> >(
+                BaseShape<Voxel>(voxels), "BaseShape");
+    verifyShapeAddability<AddableShape<Voxel> >(
+                AddableShape<Voxel>(voxels), "AddableShape");
+    verifyShapeNonAddability<RemovableShape<Voxel> >(
+                RemovableShape<Voxel>(voxels), "RemovableShape");
+    verifyShapeAddability<EditableShape<Voxel> >(
+                EditableShape<Voxel>(voxels), "EditableShape");
+    verifyShapeNonAddability<InflationShape>(
+                InflationShape(proc, 0, true), "InflationShape");
+    verifyShapeNonAddability<IntensityShape>(
+                IntensityShape(proc, 100), "IntensityShape");
+}
+
+template <class Shape>
+void verifyShapeRemovability(Shape shape, std::string name)
+{
+    ASSERT_TRUE(shape.isRemovable()) << name;
+
+    ASSERT_TRUE(shape.template contains<Level::MAIN_SHAPE>(0, 0, 2)) << name;
+
+    shape.template removeVoxel<Level::MAIN_SHAPE>(
+                Voxel(0, 0, 2, Level::MAIN_SHAPE));
+
+    ASSERT_TRUE(shape.template contains<Level::NEIGHBORHOOD>(0, 0, 2)) << name;
+    ASSERT_FALSE(shape.template contains<Level::MAIN_SHAPE>(0, 0, 2)) << name;
+    ASSERT_FALSE(shape.template contains<Level::CORE>(0, 0, 2)) << name;
+
+    ASSERT_TRUE(shape.template contains<Level::CORE>(0, 1, 2)) << name;
+
+    shape.template removeVoxel<Level::MAIN_SHAPE>(
+                Voxel(0, 1, 2, Level::CORE));
+
+    ASSERT_TRUE(shape.template contains<Level::NEIGHBORHOOD>(0, 1, 2)) << name;
+    ASSERT_FALSE(shape.template contains<Level::MAIN_SHAPE>(0, 1, 2)) << name;
+    ASSERT_FALSE(shape.template contains<Level::CORE>(0, 1, 2)) << name;
+
+    ASSERT_TRUE(shape.template contains<Level::NEIGHBORHOOD>(1, 1, 3)) << name;
+
+    shape.template removeVoxel<Level::CORE>(
+                Voxel(1, 1, 3, Level::CORE));
+
+    ASSERT_TRUE(shape.template contains<Level::NEIGHBORHOOD>(1, 1, 3)) << name;
+    ASSERT_TRUE(shape.template contains<Level::MAIN_SHAPE>(1, 1, 3)) << name;
+    ASSERT_FALSE(shape.template contains<Level::CORE>(1, 1, 3)) << name;
+}
+
+template <class Shape>
+void verifyShapeNonRemovability(Shape shape, std::string name)
+{
+    ASSERT_FALSE(shape.isRemovable()) << name;
+}
+
+TEST(ShapeTest, Removal) {
+    std::vector<Voxel> voxels;
+    std::vector<png::image<png::gray_pixel> > stack;
+    ProcessedImageStack proc;
+
+    buildExample1Small<Voxel>(voxels);
+    buildExample1SmallAsStack<Voxel>(stack);
+    proc.load(stack);
+
+    verifyShapeNonRemovability<BaseShape<Voxel> >(
+                BaseShape<Voxel>(voxels), "BaseShape");
+    verifyShapeNonRemovability<AddableShape<Voxel> >(
+                AddableShape<Voxel>(voxels), "AddableShape");
+    verifyShapeRemovability<RemovableShape<Voxel> >(
+                RemovableShape<Voxel>(voxels), "RemovableShape");
+    verifyShapeRemovability<EditableShape<Voxel> >(
+                EditableShape<Voxel>(voxels), "EditableShape");
+    verifyShapeNonRemovability<InflationShape>(
+                InflationShape(proc, 0, true), "InflationShape");
+    verifyShapeNonRemovability<IntensityShape>(
+                IntensityShape(proc, 100), "IntensityShape");
+}
+
+TEST(ShapeTest, Inflation) {
+    std::vector<Voxel> voxels;
+    std::vector<png::image<png::gray_pixel> > stack;
+    std::unordered_set<Voxel> voxelSet;
+    ProcessedImageStack proc;
+
+    buildExample1Small<Voxel>(voxels);
+    buildExample1SmallAsStack<Voxel>(stack);
+    proc.load(stack);
+    InflationShape shape(proc, 0, true);
+
+    for (Voxel v : voxels) voxelSet.insert(v);
+
+    int count = 0;
+    for (auto it = shape.rbegin<Level::MAIN_SHAPE>();
+         it != shape.template rend<Level::MAIN_SHAPE>();
+         it++)
+    {
+        Voxel v = *it;
+        ASSERT_TRUE(voxelSet.find(v) != voxelSet.end()) << "Reverse Iterator";
+        ASSERT_TRUE(v.getLevel() == Level::MAIN_SHAPE ||
+                    v.getLevel() == Level::CORE) << "Reverse Iterator";
+        ASSERT_EQ(0, shape.getMinLevel(v)) << "Reverse Iterator";
+        count++;
+    }
+    ASSERT_EQ(11, count) << "Reverse Iterator";
+
     count = 0;
-    for (typename Shape::voxel_iterator it = shape.template begin<Shape::NEIGHBORHOOD>();
-         it != shape.template end<Shape::NEIGHBORHOOD>(); it++){
-        ++count;
+    for (auto it = shape.template rbegin<Level::NEIGHBORHOOD>();
+         it != shape.template rend<Level::NEIGHBORHOOD>();
+         it++)
+    {
+        Voxel v = *it;
+        ASSERT_TRUE(voxelSet.find(v) != voxelSet.end()) << "Reverse Iterator";
+        ASSERT_TRUE(v.getLevel() == Level::NEIGHBORHOOD ||
+                    v.getLevel() == Level::MAIN_SHAPE ||
+                    v.getLevel() == Level::CORE) << "Reverse Iterator";
+        if (v.getLevel() == Level::NEIGHBORHOOD)
+            ASSERT_TRUE(0 < shape.getMinLevel(v)) << "Reverse Iterator";
+        count++;
     }
-    ASSERT_EQ(count, 4) << name;
+    ASSERT_EQ(14, count) << "Reverse Iterator";
+
+    ASSERT_EQ(150, shape.getShapeThreshold()) << "Threshold";
+    ASSERT_EQ(100, shape.getNeighborhoodThreshold()) << "Threshold";
+
+    ASSERT_EQ(14, shape.getNeighborhoodSize()) << "Neighborhood size";
+
+    ASSERT_EQ(shape.getInflationValue() + 1, shape.getNumberOfLevels())
+            << "Number of levels and inflation value";
+
+    const InflationShape::voxel_container &container =
+            shape.getVoxelsAtDistance(1);
+
+    ASSERT_EQ(3, container.size()) << "Voxels at distance 1";
+
+    const ConnectedComponents<Voxel> &maxima = shape.getLocalMaxima();
+
+    ASSERT_EQ(1, maxima.size()) << "Voxels at distance 1";
 }
 
-template <class Shape, class Voxel>
-void verifyShapeNonEndIteratorStep(typename Shape::voxel_iterator &it,
-                                   Shape &shape, typename Shape::Level level,
-                                   Voxel &value, std::string name) {
-    if (level == Shape::CORE){
-        typename Shape::voxel_iterator end = shape.template end<Shape::CORE>();
-        ASSERT_NE(it, end) << "Core Iterator " << name << " is at the end unexpectedly.";
-    } else if (level == Shape::MAIN_SHAPE){
-        typename Shape::voxel_iterator end = shape.template end<Shape::MAIN_SHAPE>();
-        ASSERT_NE(it, end) << "Shape Iterator " << name << " is at the end unexpectedly.";
-    } else {
-        typename Shape::voxel_iterator end = shape.template end<Shape::NEIGHBORHOOD>();
-        ASSERT_NE(it, end) << "Neighborhood Iterator " << name << " is at the end unexpectedly.";
+TEST(ShapeTest, Intensity) {
+    std::vector<Voxel> voxels;
+    std::vector<png::image<png::gray_pixel> > stack;
+    std::unordered_set<Voxel> voxelSet;
+    ProcessedImageStack proc;
+
+    buildExample1Small<Voxel>(voxels);
+    buildExample1SmallAsStack<Voxel>(stack);
+    proc.load(stack);
+    IntensityShape shape(proc, 100);
+
+    for (Voxel v : voxels) voxelSet.insert(v);
+
+    int count = 0;
+    for (auto it = shape.rbegin<IntensityShape::MAIN_SHAPE>();
+         it != shape.template rend<IntensityShape::MAIN_SHAPE>();
+         it++)
+    {
+        Voxel v = *it;
+        ASSERT_TRUE(voxelSet.find(v) != voxelSet.end()) << "Reverse Iterator";
+        ASSERT_TRUE(105 >= shape.getMinLevel(v)) << "Reverse Iterator";
+        count++;
+    }
+    ASSERT_EQ(11, count) << "Reverse Iterator";
+
+    count = 0;
+    for (auto it = shape.template rbegin<IntensityShape::NEIGHBORHOOD>();
+         it != shape.template rend<IntensityShape::NEIGHBORHOOD>();
+         it++)
+    {
+        Voxel v = *it;
+        ASSERT_TRUE(voxelSet.find(v) != voxelSet.end()) << "Reverse Iterator";
+        ASSERT_TRUE(155 >= shape.getMinLevel(v)) << "Reverse Iterator";
+        count++;
+    }
+    ASSERT_EQ(14, count) << "Reverse Iterator";
+
+    ASSERT_EQ(14, shape.getNeighborhoodSize()) << "Neighborhood size";
+    ASSERT_EQ(4, shape.getCoreSize()) << "Core size";
+
+    const IntensityShape::voxel_container &container =
+            shape.getVoxelsWithGrayscale(150);
+
+    ASSERT_EQ(7, container.size()) << "Voxels with grayscale value 150";
+
+    ASSERT_EQ(55, shape.getCoreThreshold()) << "Threshold";
+    ASSERT_EQ(105, shape.getShapeThreshold()) << "Threshold";
+    ASSERT_EQ(155, shape.getNeighborhoodThreshold()) << "Threshold";
+    ASSERT_EQ(155, shape.getExtendedNeighborhoodThreshold()) << "Threshold";
+
+    shape.setCoreThreshold(60);
+    shape.setShapeThreshold(95);
+    shape.setNeighborhoodThreshold(125);
+    shape.setExtendedNeighborhoodThreshold(150);
+
+    ASSERT_EQ(60, shape.getCoreThreshold()) << "Threshold";
+    ASSERT_EQ(95, shape.getShapeThreshold()) << "Threshold";
+    ASSERT_EQ(125, shape.getNeighborhoodThreshold()) << "Threshold";
+    ASSERT_EQ(150, shape.getExtendedNeighborhoodThreshold()) << "Threshold";
+}
+
+TEST(ShapeTest, Neighborhoods) {
+    std::vector<Voxel> voxels;
+    buildExample1Small<Voxel>(voxels);
+    EditableShape<Voxel> shape(voxels);
+
+    std::unordered_set<Voxel> voxelSet;
+    int count = 0;
+    int x, y, z;
+
+    for (NeighborsIterator<Voxel> it(Voxel(0, 2, 2)); !it.isEnd(); it.next())
+    {
+        count++;
+        it.getCurrentValue(x, y, z);
+        voxelSet.insert(Voxel(x, y, z));
     }
 
-    ASSERT_EQ(*it, value) << "Not right value for " << name << ": (" << (*it)[0]
-                          << "," << (*it)[1] << "," << (*it)[2]
-                          << ") instead of (" << value[0] << "," << value[1]
-                          << "," << value[2] << ").";
-}
+    ASSERT_EQ(count, 5);
+    ASSERT_EQ(count, voxelSet.size());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 2, 3)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 2, 1)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 3, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 2, 2)) != voxelSet.end());
 
-template <class Shape, class Voxel>
-void verifyShapeEndIteratorStep(typename Shape::voxel_iterator &it,
-                                Shape &shape, typename Shape::Level level,
-                                std::string name) {
-    if (level == Shape::CORE){
-        typename Shape::voxel_iterator end = shape.template end<Shape::CORE>();
-        ASSERT_EQ(it, end) << "Core Iterator " << name << " is not at the end unexpectedly.";
-    } else if (level == Shape::MAIN_SHAPE){
-        typename Shape::voxel_iterator end = shape.template end<Shape::MAIN_SHAPE>();
-        ASSERT_EQ(it, end) << "Shape Iterator " << name << " is not at the end unexpectedly.";
-    } else {
-        typename Shape::voxel_iterator end = shape.template end<Shape::NEIGHBORHOOD>();
-        ASSERT_EQ(it, end) << "Neighborhood Iterator " << name << " is not at the end unexpectedly.";
+    voxelSet.clear();
+    count = 0;
+
+    for (ExtendedNeighborsIterator<Voxel> it(Voxel(0, 2, 2));
+         !it.isEnd();
+         it.next())
+    {
+        count++;
+        it.getCurrentValue(x, y, z);
+        voxelSet.insert(Voxel(x, y, z));
     }
+
+    ASSERT_EQ(count, 17);
+    ASSERT_EQ(count, voxelSet.size());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 1)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 3)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 2, 1)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 2, 3)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 3, 1)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 3, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 3, 3)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 1, 1)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 1, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 1, 3)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 2, 1)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 2, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 2, 3)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 3, 1)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 3, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 3, 3)) != voxelSet.end());
+
+    voxelSet.clear();
+    count = 0;
+
+    for (NeighborsInIterator<EditableShape<Voxel>, Voxel, NEIGHBORHOOD> it(
+             Voxel(0, 2, 2), shape);
+         !it.isEnd(); it.next())
+    {
+        count++;
+        it.getCurrentValue(x, y, z);
+        voxelSet.insert(Voxel(x, y, z));
+        ASSERT_TRUE(shape.contains<NEIGHBORHOOD>(x, y, z));
+    }
+
+    ASSERT_EQ(count, 3);
+    ASSERT_EQ(count, voxelSet.size());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 3, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 2, 1)) != voxelSet.end());
+
+    voxelSet.clear();
+    count = 0;
+
+    for (NeighborsInIterator<EditableShape<Voxel>, Voxel, MAIN_SHAPE> it(
+             Voxel(0, 2, 2), shape);
+         !it.isEnd(); it.next())
+    {
+        count++;
+        it.getCurrentValue(x, y, z);
+        voxelSet.insert(Voxel(x, y, z));
+        ASSERT_TRUE(shape.contains<MAIN_SHAPE>(x, y, z));
+    }
+
+    ASSERT_EQ(count, 3);
+    ASSERT_EQ(count, voxelSet.size());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 3, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 2, 1)) != voxelSet.end());
+
+    voxelSet.clear();
+    count = 0;
+
+    for (NeighborsInIterator<EditableShape<Voxel>, Voxel, CORE> it(
+             Voxel(0, 2, 2), shape);
+         !it.isEnd(); it.next())
+    {
+        count++;
+        it.getCurrentValue(x, y, z);
+        voxelSet.insert(Voxel(x, y, z));
+        ASSERT_TRUE(shape.contains<CORE>(x, y, z));
+    }
+
+    ASSERT_EQ(count, 1);
+    ASSERT_EQ(count, voxelSet.size());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 2)) != voxelSet.end());
+
+    voxelSet.clear();
+    count = 0;
+
+    for (ExtendedNeighborsInIterator<EditableShape<Voxel>, Voxel, NEIGHBORHOOD> it(
+             Voxel(0, 2, 2), shape);
+         !it.isEnd(); it.next())
+    {
+        count++;
+        it.getCurrentValue(x, y, z);
+        voxelSet.insert(Voxel(x, y, z));
+        ASSERT_TRUE(shape.contains<NEIGHBORHOOD>(x, y, z));
+    }
+
+    ASSERT_EQ(count, 7);
+    ASSERT_EQ(count, voxelSet.size());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 3, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 2, 1)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 3)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 3, 1)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 1, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 1, 3)) != voxelSet.end());
+
+    voxelSet.clear();
+    count = 0;
+
+    for (ExtendedNeighborsInIterator<EditableShape<Voxel>, Voxel, MAIN_SHAPE> it(
+             Voxel(0, 2, 2), shape);
+         !it.isEnd(); it.next())
+    {
+        count++;
+        it.getCurrentValue(x, y, z);
+        voxelSet.insert(Voxel(x, y, z));
+        ASSERT_TRUE(shape.contains<MAIN_SHAPE>(x, y, z));
+    }
+
+    ASSERT_EQ(count, 6);
+    ASSERT_EQ(count, voxelSet.size());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 3, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 3)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 2, 1)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 1, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 1, 3)) != voxelSet.end());
+
+    voxelSet.clear();
+    count = 0;
+
+    for (ExtendedNeighborsInIterator<EditableShape<Voxel>, Voxel, CORE> it(
+             Voxel(0, 2, 2), shape);
+         !it.isEnd(); it.next())
+    {
+        count++;
+        it.getCurrentValue(x, y, z);
+        voxelSet.insert(Voxel(x, y, z));
+        ASSERT_TRUE(shape.contains<CORE>(x, y, z));
+    }
+
+    ASSERT_EQ(count, 2);
+    ASSERT_EQ(count, voxelSet.size());
+    ASSERT_TRUE(voxelSet.find(Voxel(0, 1, 2)) != voxelSet.end());
+    ASSERT_TRUE(voxelSet.find(Voxel(1, 1, 3)) != voxelSet.end());
 }
 
-TEST(ShapeTest, Addibility) {
-    verifyShapeNonAddibility<BaseShape<Voxel>, Voxel>("base shape");
-    verifyShapeAddibility<AddableShape<Voxel>, Voxel>("addable shape");
-    verifyShapeNonAddibility<RemovableShape<Voxel>, Voxel>("removable shape");
-    verifyShapeAddibility<EditableShape<Voxel>, Voxel>("editable shape");
-    verifyShapeAddibility<AugShape, Voxel>("augmented shape");
-}
-
-template <class Shape, class Voxel>
-void verifyShapeNonAddibility(std::string name) {
-    std::vector<Voxel> voxels;
-    std::vector<typename Shape::Level> minLevels;
-
-    buildMiniExample2<Shape,Voxel>(voxels, minLevels);
-
-    Shape shape(voxels, minLevels);
-
-    ASSERT_FALSE(shape.isAddable()) << name << " should not be addable";
-}
-
-template <class Shape, class Voxel>
-void verifyShapeAddibility(std::string name) {
-    std::vector<Voxel> voxels;
-    std::vector<typename Shape::Level> minLevels;
-
-    buildMiniExample2<Shape,Voxel>(voxels, minLevels);
-
-    Shape shape(voxels, minLevels);
-
-    ASSERT_TRUE(shape.isAddable()) << name << " should be addable";
-
-    shape.template addVoxel<Shape::CORE>(Voxel(1, 1, 1));
-    shape.template addVoxel<Shape::NEIGHBORHOOD>(Voxel(1, 2, 3));
-    shape.template addVoxel<Shape::CORE>(Voxel(0, 1, 0));
-
-    verifyShapeVoxelAppearsInCore<Shape, Voxel>(Voxel(1, 1, 1), shape,
-                                                name + "::(1,1,1)");
-    verifyShapeVoxelAppearsInNeighborhood<Shape, Voxel>(Voxel(1, 2, 3), shape,
-                                                        name + "::(1,2,3)");
-    verifyShapeVoxelAppearsInCore<Shape, Voxel>(Voxel(0, 1, 0), shape, name + "::v1");
-}
-
-TEST(ShapeTest, Removability) {
-    verifyShapeNonRemovability<BaseShape<Voxel>, Voxel>("base shape");
-    verifyShapeNonRemovability<AddableShape<Voxel>, Voxel>("addable shape");
-    verifyShapeRemovability<RemovableShape<Voxel>, Voxel>("removable shape");
-    verifyShapeRemovability<EditableShape<Voxel>, Voxel>("editable shape");
-    verifyShapeNonRemovability<AugShape, Voxel>("augmented shape");
-}
-
-template <class Shape, class Voxel>
-void verifyShapeNonRemovability(std::string name) {
-    std::vector<Voxel> voxels;
-    std::vector<typename Shape::Level> minLevels;
-
-    buildMiniExample2<Shape,Voxel>(voxels, minLevels);
-
-    Voxel v4(1, 1, 1);
-    Voxel v5(1, 2, 3);
-
-    voxels.push_back(v4);
-    minLevels.push_back(Shape::CORE);
-    voxels.push_back(v5);
-    minLevels.push_back(Shape::NEIGHBORHOOD);
-
-    Shape shape(voxels, minLevels);
-
-    ASSERT_FALSE(shape.isRemovable()) << name << " should not be removable";
-}
-
-template <class Shape, class Voxel>
-void verifyShapeRemovability(std::string name) {
-    std::vector<Voxel> voxels;
-    std::vector<typename Shape::Level> minLevels;
-
-    buildMiniExample2<Shape,Voxel>(voxels, minLevels);
-
-    Voxel v1(0, 1, 0);
-    Voxel v3(0, 2, 1);
-    Voxel v4(1, 1, 1);
-    Voxel v5(1, 2, 3);
-
-    voxels.push_back(v4);
-    minLevels.push_back(Shape::CORE);
-    voxels.push_back(v5);
-    minLevels.push_back(Shape::NEIGHBORHOOD);
-
-    Shape shape(voxels, minLevels);
-
-    ASSERT_TRUE(shape.isRemovable()) << name << " should be removable";
-
-    shape.template removeVoxel<Shape::CORE>(v4);
-    shape.template removeVoxel<Shape::NEIGHBORHOOD>(v1);
-    shape.template removeVoxel<Shape::NEIGHBORHOOD>(v3);
-
-    verifyShapeVoxelAppearsInMainShape<Shape, Voxel>(v4, shape, name + "::v4");
-    verifyShapeVoxelNotContained<Shape, Voxel>(v1, shape, name + "::v1");
-    verifyShapeVoxelNotContained<Shape, Voxel>(v3, shape, name + "::v3");
-}
-
-TEST(ShapeTest, MinLevelInformation) {
-    verifyShapeMinLevelInformation<BaseShape<Voxel>, Voxel>("base shape");
-    verifyShapeMinLevelInformation<AddableShape<Voxel>, Voxel>("addable shape");
-    verifyShapeMinLevelInformation<RemovableShape<Voxel>, Voxel>(
-                "removable shape");
-    verifyShapeMinLevelInformation<EditableShape<Voxel>, Voxel>("editable shape");
-    verifyShapeMinLevelInformation<AugShape, Voxel>("augmented shape");
-}
-
-template <class Shape, class Voxel>
-void verifyShapeMinLevelInformation(std::string name) {
-    std::vector<Voxel> voxels;
-    std::vector<typename Shape::Level> minLevels;
-
-    buildMiniExample2<Shape,Voxel>(voxels, minLevels);
-
-    Shape shape(voxels, minLevels);
-
-    ASSERT_EQ(Shape::CORE, shape.getMinLevel(Voxel(0, 0, 0)))
-            << "Core voxel does have core as min level in " << name << ".";
-    ASSERT_EQ(Shape::NEIGHBORHOOD, shape.getMinLevel(Voxel(0, 1, 0)))
-            << "Neighborhood voxel does have neighborhood as min level in " << name
-            << ".";
-    ASSERT_EQ(Shape::MAIN_SHAPE, shape.getMinLevel(Voxel(2, 0, 3)))
-            << "Main shape voxel does have main shape as min level in " << name
-            << ".";
-    ASSERT_EQ(Shape::CORE, shape.getMinLevel(Voxel(0, 2, 1)))
-            << "Core voxel does have core as min level in " << name << ".";
-}
-
-template <class Shape, class Voxel>
-void verifyShapeVoxelNotContained(Voxel v, Shape &shape, std::string name) {
-    ASSERT_FALSE(shape.template contains<Shape::CORE>(v))
-            << "Outside voxel contained in " << name << " core.";
-    ASSERT_FALSE(shape.template contains<Shape::MAIN_SHAPE>(v))
-            << "Outside voxel contained in " << name << " main shape.";
-    ASSERT_FALSE(shape.template contains<Shape::NEIGHBORHOOD>(v))
-            << "Outside voxel contained in " << name << " neighborhood.";
-    ASSERT_TRUE(shape.template contains<Shape::OUTSIDE>(v))
-            << "Outside voxel contained in " << name << ".";
-}
-
-template <class Shape, class Voxel>
-void verifyShapeVoxelAppearsInCore(Voxel v, Shape &shape, std::string name) {
-    ASSERT_TRUE(shape.template contains<Shape::CORE>(v))
-            << "Core voxel not contained in " << name << " core.";
-    ASSERT_TRUE(shape.template contains<Shape::MAIN_SHAPE>(v))
-            << "Core voxel not contained in " << name << " main shape.";
-    ASSERT_TRUE(shape.template contains<Shape::NEIGHBORHOOD>(v))
-            << "Core voxel not contained in " << name << " neighborhood.";
-    ASSERT_FALSE(shape.template contains<Shape::OUTSIDE>(v))
-            << "Core voxel not contained in " << name << ".";
-}
-
-template <class Shape, class Voxel>
-void verifyShapeVoxelAppearsInMainShape(Voxel v, Shape &shape,
-                                        std::string name) {
-    ASSERT_FALSE(shape.template contains<Shape::CORE>(v))
-            << "Main shape voxel contained in " << name << " core.";
-    ASSERT_TRUE(shape.template contains<Shape::MAIN_SHAPE>(v))
-            << "Main shape voxel not contained in " << name << " main shape.";
-    ASSERT_TRUE(shape.template contains<Shape::NEIGHBORHOOD>(v))
-            << "Main shape voxel not contained in " << name << " neighborhood.";
-    ASSERT_FALSE(shape.template contains<Shape::OUTSIDE>(v))
-            << "Main shape voxel not contained in " << name << ".";
-}
-
-template <class Shape, class Voxel>
-void verifyShapeVoxelAppearsInNeighborhood(Voxel v, Shape &shape,
-                                           std::string name) {
-    ASSERT_FALSE(shape.template contains<Shape::CORE>(v))
-            << "Neighborhood voxel contained in " << name << " core.";
-    ASSERT_FALSE(shape.template contains<Shape::MAIN_SHAPE>(v))
-            << "Neighborhood voxel contained in " << name << " main shape.";
-    ASSERT_TRUE(shape.template contains<Shape::NEIGHBORHOOD>(v))
-            << "Neighborhood voxel not contained in " << name << " neighborhood.";
-    ASSERT_FALSE(shape.template contains<Shape::OUTSIDE>(v))
-            << "Neighborhood voxel not contained in " << name << ".";
-}

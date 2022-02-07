@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -190,7 +190,8 @@ public:
     /**
      * @brief Tests if an element is already initialized.
      * @param e Element to test.
-     * @return True if the structure contains the element @p e, false otherwise.
+     * @return True if the structure contains the element @p e,
+     * false otherwise.
      */
     bool contains(const Element &e);
 
@@ -233,7 +234,8 @@ public:
 
     /**
      * @brief Returns an iterator pointing to the given element.
-     * The iterator will than iterate over the component containing the element.
+     * The iterator will than iterate over the component containing the
+     * element.
      * @param e Starting element.
      * @return Iterator pointing to @p e.
      */
@@ -291,7 +293,8 @@ private:
      */
     void _removeLeaf(Node& leaf);
     /**
-     * @brief Removes a leaf and rebuild locally if the resulting tree is not reduced.
+     * @brief Removes a leaf and rebuild locally if the resulting tree is
+     * not reduced.
      * @param leaf Leaf to be removed.
      */
     void _removeLeafWithRebuild(Node& leaf);
@@ -309,7 +312,8 @@ private:
     Node& _find(Node& node);
 
     /**
-     * @brief Detachs given node from its parent and relinks it to its grandparent.
+     * @brief Detachs given node from its parent and relinks it to its
+     * grandparent.
      * @param node Node to relink.
      */
     void _relink(Node& node);
@@ -332,7 +336,9 @@ private:
      * @param container Container. Is not cleard before filling.
      * @param toIgnore Optional node to not add in the container.
      */
-    void _getNodeDFSTree(Node& start, std::vector<Node*> &container, Node* toIgnore = nullptr);
+    void _getNodeDFSTree(Node& start,
+                         std::vector<Node*> &container,
+                         Node* toIgnore = nullptr);
     /**
      * @brief Switches the position of the two given nodes in their tree.
      * @param node1 First node.

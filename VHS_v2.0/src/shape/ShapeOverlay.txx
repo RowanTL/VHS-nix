@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -47,7 +47,8 @@ ShapeOverlay<AugmentedShape, Voxel>::ShapeOverlay(AugmentedShape &shape)
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::addVoxelsInMainShape(
-        voxel_container &voxels) {
+        voxel_container &voxels)
+{
     if (_currentState == -1) return;
     _currentState = 1;
 
@@ -59,10 +60,12 @@ void ShapeOverlay<AugmentedShape, Voxel>::addVoxelsInMainShape(
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::addVoxelsInMainShapeWithH0Guarantee(
-        voxel_container &voxels) {
+        voxel_container &voxels)
+{
     if (_currentState == -1) return;
     _currentState = 1;
 
+    _currentNumberOfComponents = _initialNumberOfComponents;
     _updateNumberOfVoidsAfterAdding(voxels);
     _updateEulerCharacteristic(voxels);
     _updateNumberOfLoops();
@@ -70,10 +73,12 @@ void ShapeOverlay<AugmentedShape, Voxel>::addVoxelsInMainShapeWithH0Guarantee(
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::addVoxelsInMainShapeWithH2Guarantee(
-        voxel_container &voxels) {
+        voxel_container &voxels)
+{
     if (_currentState == -1) return;
     _currentState = 1;
 
+    _currentNumberOfVoids = _initialNumberOfVoids;
     _updateNumberOfComponentsAfterAdding(voxels);
     _updateEulerCharacteristic(voxels);
     _updateNumberOfLoops();
@@ -81,18 +86,23 @@ void ShapeOverlay<AugmentedShape, Voxel>::addVoxelsInMainShapeWithH2Guarantee(
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::addVoxelsInMainShapeWithH0H2Guarantee(
-        voxel_container &voxels) {
+        voxel_container &voxels)
+{
     if (_currentState == -1) return;
     _currentState = 1;
 
+    _currentNumberOfComponents = _initialNumberOfComponents;
+    _currentNumberOfVoids = _initialNumberOfVoids;
     _updateEulerCharacteristic(voxels);
     _updateNumberOfLoops();
 }
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::removeVoxelsFromMainShape(
-        voxel_container &voxels) {
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+        voxel_container &voxels)
+{
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
     if (_currentState == 1) return;
     _currentState = -1;
@@ -105,12 +115,15 @@ void ShapeOverlay<AugmentedShape, Voxel>::removeVoxelsFromMainShape(
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::removeVoxelsFromMainShapeWithH0Guarantee(
-        voxel_container &voxels) {
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+        voxel_container &voxels)
+{
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
     if (_currentState == 1) return;
     _currentState = -1;
 
+    _currentNumberOfComponents = _initialNumberOfComponents;
     _updateNumberOfVoidsAfterRemoving(voxels);
     _updateEulerCharacteristic(voxels);
     _updateNumberOfLoops();
@@ -118,12 +131,15 @@ void ShapeOverlay<AugmentedShape, Voxel>::removeVoxelsFromMainShapeWithH0Guarant
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::removeVoxelsFromMainShapeWithH2Guarantee(
-        voxel_container &voxels) {
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+        voxel_container &voxels)
+{
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
     if (_currentState == 1) return;
     _currentState = -1;
 
+    _currentNumberOfVoids = _initialNumberOfVoids;
     _updateNumberOfComponentsAfterRemoving(voxels);
     _updateEulerCharacteristic(voxels);
     _updateNumberOfLoops();
@@ -131,12 +147,16 @@ void ShapeOverlay<AugmentedShape, Voxel>::removeVoxelsFromMainShapeWithH2Guarant
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::removeVoxelsFromMainShapeWithH0H2Guarantee(
-        voxel_container &voxels) {
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+        voxel_container &voxels)
+{
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
     if (_currentState == 1) return;
     _currentState = -1;
 
+    _currentNumberOfComponents = _initialNumberOfComponents;
+    _currentNumberOfVoids = _initialNumberOfVoids;
     _updateEulerCharacteristic(voxels);
     _updateNumberOfLoops();
 }
@@ -156,7 +176,8 @@ addVoxelsAndReturnEulerOnly(voxel_container &voxels){
 template <class AugmentedShape, class Voxel>
 int ShapeOverlay<AugmentedShape, Voxel>::
 removeVoxelsAndReturnEulerOnly(voxel_container &voxels){
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
     if (_currentState == 1) return _currentEulerCharacteristic;
     _currentState = -1;
@@ -182,7 +203,8 @@ addVoxelsAndReturnH0Only(voxel_container &voxels){
 template <class AugmentedShape, class Voxel>
 unsigned int ShapeOverlay<AugmentedShape, Voxel>::
 removeVoxelsAndReturnH0Only(voxel_container &voxels){
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
     if (_currentState == 1) return _currentNumberOfComponents;
     _currentState = -1;
@@ -210,7 +232,8 @@ addVoxelsAndReturnH2Only(voxel_container &voxels){
 template <class AugmentedShape, class Voxel>
 unsigned int ShapeOverlay<AugmentedShape, Voxel>::
 removeVoxelsAndReturnH2Only(voxel_container &voxels){
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
     if (_currentState == 1) return _currentNumberOfVoids;
     _currentState = -1;
@@ -224,8 +247,11 @@ removeVoxelsAndReturnH2Only(voxel_container &voxels){
 }
 
 template <class AugmentedShape, class Voxel>
-void ShapeOverlay<AugmentedShape, Voxel>::saveAddedVoxels(voxel_container &voxels){
-    if (_currentState != 1) return;
+void ShapeOverlay<AugmentedShape, Voxel>::saveAddedVoxels(
+        voxel_container &voxels)
+{
+    if (_currentState == -1) return;
+    _currentState = 1;
 
     _updateNumberOfComponentsAfterAddingAndSave(voxels);
     _updateNumberOfVoidsAfterAddingComputeCollarChanges(
@@ -234,10 +260,14 @@ void ShapeOverlay<AugmentedShape, Voxel>::saveAddedVoxels(voxel_container &voxel
 }
 
 template <class AugmentedShape, class Voxel>
-void ShapeOverlay<AugmentedShape, Voxel>::saveRemovedVoxels(voxel_container &voxels){
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+void ShapeOverlay<AugmentedShape, Voxel>::saveRemovedVoxels(
+        voxel_container &voxels)
+{
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
-    if (_currentState != -1) return;
+    if (_currentState == 1) return;
+    _currentState = -1;
 
     _updateNumberOfComponentsAfterRemovingAndSave(voxels);
     _updateNumberOfVoidsAfterRemovingComputeCollarChanges(
@@ -247,8 +277,10 @@ void ShapeOverlay<AugmentedShape, Voxel>::saveRemovedVoxels(voxel_container &vox
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::saveAddedVoxelsWithH2Guarantee(
-        voxel_container &voxels){
-    if (_currentState != 1) return;
+        voxel_container &voxels)
+{
+    if (_currentState == -1) return;
+    _currentState = 1;
 
     _updateNumberOfComponentsAfterAddingAndSave(voxels);
     _updateNumberOfVoidsAfterAddingComputeCollarChanges(
@@ -259,10 +291,13 @@ void ShapeOverlay<AugmentedShape, Voxel>::saveAddedVoxelsWithH2Guarantee(
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::saveRemovedVoxelsWithH2Guarantee(
-        voxel_container &voxels){
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+        voxel_container &voxels)
+{
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
-    if (_currentState != -1) return;
+    if (_currentState == 1) return;
+    _currentState = -1;
 
     _updateNumberOfComponentsAfterRemovingAndSave(voxels);
     _updateNumberOfVoidsAfterRemovingComputeCollarChanges(
@@ -273,10 +308,13 @@ void ShapeOverlay<AugmentedShape, Voxel>::saveRemovedVoxelsWithH2Guarantee(
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::saveRemovedVoxelsWithH0Guarantee(
-        voxel_container &voxels){
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+        voxel_container &voxels)
+{
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
-    if (_currentState != -1) return;
+    if (_currentState == 1) return;
+    _currentState = -1;
 
     _updateNumberOfVoidsAfterRemovingComputeCollarChanges(
                 voxels, _savedCollar);
@@ -286,10 +324,13 @@ void ShapeOverlay<AugmentedShape, Voxel>::saveRemovedVoxelsWithH0Guarantee(
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::saveRemovedVoxelsWithH0H2Guarantee(
-        voxel_container &voxels){
-    static_assert(AugmentedShape::isRemovable(), "Removal of voxel not enabled.");
+        voxel_container &voxels)
+{
+    static_assert(AugmentedShape::isRemovable(),
+            "Removal of voxel not enabled.");
 
-    if (_currentState != -1) return;
+    if (_currentState == 1) return;
+    _currentState = -1;
 
     _updateNumberOfVoidsAfterRemovingComputeCollarChanges(
                 voxels, _savedCollar);
@@ -315,7 +356,8 @@ void ShapeOverlay<AugmentedShape, Voxel>::clearModifications(){
 }
 
 template <class AugmentedShape, class Voxel>
-inline int ShapeOverlay<AugmentedShape, Voxel>::getInitialEulerCharacteristic() const {
+inline int ShapeOverlay<AugmentedShape, Voxel>::getInitialEulerCharacteristic() const
+{
     return _initialEulerCharacteristic;
 }
 
@@ -340,13 +382,13 @@ ShapeOverlay<AugmentedShape, Voxel>::getInitialNumberOfVoids() {
     if (_savedSinceLastUpdate){
         if (_currentState == 1){
             std::function<bool(Voxel)> isInShape = [this](Voxel v) {
-                return _shape.template contains<MAIN_SHAPE>(v) ||
+                return _shape.template contains<MAIN_SHAPE>(v[0], v[1], v[2]) ||
                         _savedVoxels.find(v) != _savedVoxels.end();
             };
             _updateNumberOfVoidsAndSave(_savedCollar, isInShape);
         } else {
             std::function<bool(Voxel)> isInShape = [this](Voxel v) {
-                return _shape.template contains<MAIN_SHAPE>(v) &&
+                return _shape.template contains<MAIN_SHAPE>(v[0], v[1], v[2]) &&
                         _savedVoxels.find(v) == _savedVoxels.end();
             };
             _updateNumberOfVoidsAndSave(_savedCollar, isInShape);
@@ -358,7 +400,8 @@ ShapeOverlay<AugmentedShape, Voxel>::getInitialNumberOfVoids() {
 }
 
 template <class AugmentedShape, class Voxel>
-inline int ShapeOverlay<AugmentedShape, Voxel>::getCurrentEulerCharacteristic() const {
+inline int ShapeOverlay<AugmentedShape, Voxel>::getCurrentEulerCharacteristic() const
+{
     return _currentEulerCharacteristic;
 }
 
@@ -388,23 +431,23 @@ ShapeOverlay<AugmentedShape, Voxel>::getCurrentNumberOfVoids() {
 }
 
 template <class AugmentedShape, class Voxel>
-template <typename ShapeOverlay<AugmentedShape, Voxel>::Level level>
+template <Level level>
 bool ShapeOverlay<AugmentedShape, Voxel>::contains(Voxel v) const{
-    if constexpr (level == OUTSIDE){
+    if constexpr (level == OUTSIDE || level == EX_NEIGHBORHOOD){
         if (_currentState == -1)
-            return _shape.template contains<level>(v) ||
+            return _shape.template contains<level>(v[0], v[1], v[2]) ||
                     (_savedVoxels.find(v) != _savedVoxels.end());
         if (_currentState == 1)
-            return _shape.template contains<level>(v) &&
+            return _shape.template contains<level>(v[0], v[1], v[2]) &&
                     (_savedVoxels.find(v) == _savedVoxels.end());
     } else {
         if (_currentState == 1)
-            return _shape.template contains<level>(v) ||
+            return _shape.template contains<level>(v[0], v[1], v[2]) ||
                     (_savedVoxels.find(v) != _savedVoxels.end());
         if (_currentState == -1)
-            return _shape.template contains<level>(v) &&
+            return _shape.template contains<level>(v[0], v[1], v[2]) &&
                     (_savedVoxels.find(v) == _savedVoxels.end());
-        return _shape.template contains<level>(v);
+        return _shape.template contains<level>(v[0], v[1], v[2]);
     }
 }
 
@@ -422,7 +465,9 @@ void ShapeOverlay<AugmentedShape, Voxel>::_updateEulerCharacteristicAndSave(
 }
 
 template <class AugmentedShape, class Voxel>
-void ShapeOverlay<AugmentedShape, Voxel>::_commonSaveVoxels(voxel_container &voxels){
+void ShapeOverlay<AugmentedShape, Voxel>::_commonSaveVoxels(
+        voxel_container &voxels)
+{
     _updateEulerCharacteristicAndSave(voxels);
 
     for (Voxel v : voxels) _savedVoxels.insert(v);
@@ -436,19 +481,23 @@ void ShapeOverlay<AugmentedShape, Voxel>::_commonSaveVoxels(voxel_container &vox
 }
 
 template <class AugmentedShape, class Voxel>
-void ShapeOverlay<AugmentedShape, Voxel>::_commonSaveVoxelsWithH2Guarantee(voxel_container &voxels){
+void ShapeOverlay<AugmentedShape, Voxel>::_commonSaveVoxelsWithH2Guarantee(
+        voxel_container &voxels)
+{
     _commonSaveVoxels(voxels);
     _savedSinceLastUpdate = false;
     _testedSinceLastSave = true;
     //has to be last
     _updateNumberOfLoopsAndSave();
 
+    _currentNumberOfLoops = _initialNumberOfLoops;
     _currentNumberOfVoids = _initialNumberOfVoids;
 }
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::_updateEulerCharacteristic(
-        voxel_container &voxels, int &res) {
+        voxel_container &voxels, int &res)
+{
     int genNumberOfVertices = voxels.size();
     int genNumberOfEdges = 0;
     int genNumberOfSquares = 0;
@@ -456,11 +505,14 @@ void ShapeOverlay<AugmentedShape, Voxel>::_updateEulerCharacteristic(
     std::unordered_set<Voxel> done;
     for (Voxel v : voxels) {
         genNumberOfEdges +=
-                _computeNumberOfGeneratedCells<DualEdgeIterator<Voxel>>(v, done, voxels);
+                _computeNumberOfGeneratedCells<DualEdgeIterator<Voxel>>(
+                        v, done, voxels);
         genNumberOfSquares +=
-                _computeNumberOfGeneratedCells<DualSquareIterator<Voxel>>(v, done, voxels);
+                _computeNumberOfGeneratedCells<DualSquareIterator<Voxel>>(
+                        v, done, voxels);
         genNumberOfCubes +=
-                _computeNumberOfGeneratedCells<DualCubeIterator<Voxel>>(v, done, voxels);
+                _computeNumberOfGeneratedCells<DualCubeIterator<Voxel>>(
+                        v, done, voxels);
         done.insert(v);
     }
 
@@ -472,13 +524,15 @@ void ShapeOverlay<AugmentedShape, Voxel>::_updateEulerCharacteristic(
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfComponentsAfterAdding(
-        voxel_container &voxels) {
+        voxel_container &voxels)
+{
     _updateNumberOfComponentsAfterAdding(voxels, _currentNumberOfComponents);
 }
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfComponentsAfterAddingAndSave(
-        voxel_container &voxels) {
+        voxel_container &voxels)
+{
     _updateNumberOfComponentsAfterAdding(voxels, _initialNumberOfComponents);
 }
 
@@ -486,6 +540,7 @@ template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfComponentsAfterAdding(
         voxel_container &voxels, unsigned int &res)
 {
+    int x, y, z;
     CC updatedComponents;
     std::unordered_set<Voxel> reusedComponents;
     voxel_container allVoxels(_savedVoxels);
@@ -496,11 +551,12 @@ void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfComponentsAfterAdding(
         for (neighbor_iterator<NEIGHBORHOOD> it(v, _shape);
              !it.isEnd();
              it.next()) {
-            Voxel cur = it.getCurrentValue();
+            it.getCurrentValue(x, y, z);
+            Voxel cur(x, y, z);
             if (allVoxels.find(cur) != allVoxels.end()) {
                 updatedComponents.initialize(cur);
                 updatedComponents.merge(v, cur);
-            } else if (_shape.template contains<MAIN_SHAPE>(cur)) {
+            } else if (_shape.template contains<MAIN_SHAPE>(x, y, z)) {
                 Voxel rep = _shape.getComponentRepresentative(cur);
                 reusedComponents.insert(rep);
                 updatedComponents.initialize(rep);
@@ -509,18 +565,21 @@ void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfComponentsAfterAdding(
         }
     }
 
-    res = _shapeNumberOfComponents + updatedComponents.size() - reusedComponents.size();
+    res = _shapeNumberOfComponents
+            + updatedComponents.size() - reusedComponents.size();
 }
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfComponentsAfterRemoving(
-        voxel_container &voxels) {
+        voxel_container &voxels)
+{
     _updateNumberOfComponentsAfterRemoving(voxels, _currentNumberOfComponents);
 }
 
 template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfComponentsAfterRemovingAndSave(
-        voxel_container &voxels) {
+        voxel_container &voxels)
+{
     _updateNumberOfComponentsAfterRemoving(voxels, _initialNumberOfComponents);
 }
 
@@ -528,6 +587,7 @@ template <class AugmentedShape, class Voxel>
 void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfComponentsAfterRemoving(
         voxel_container &voxels, unsigned int &res)
 {
+    int x, y, z;
     CC updatedComponents;
     std::unordered_set<Voxel> done;
     voxel_container allVoxels(_savedVoxels);
@@ -545,7 +605,8 @@ void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfComponentsAfterRemoving
                     for (neighbor_iterator<MAIN_SHAPE> nIt(cur, _shape);
                          !nIt.isEnd();
                          nIt.next()){
-                        Voxel n = nIt.getCurrentValue();
+                        nIt.getCurrentValue(x, y, z);
+                        Voxel n(x, y, z);
                         if (allVoxels.find(n) == allVoxels.end()){
                             updatedComponents.initialize(n);
                             updatedComponents.merge(cur, n);
@@ -583,7 +644,7 @@ void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfVoidsAfterAdding(
                 currentCollar);
 
     std::function<bool(Voxel)> isInShape = [&voxels, this](Voxel v) {
-        return _shape.template contains<MAIN_SHAPE>(v) ||
+        return _shape.template contains<MAIN_SHAPE>(v[0], v[1], v[2]) ||
                 voxels.find(v) != voxels.end() ||
                 _savedVoxels.find(v) != _savedVoxels.end();
     };
@@ -598,12 +659,14 @@ _updateNumberOfVoidsAfterAddingComputeCollarChanges(
         voxel_container &voxels,
         collar_container &currentCollar)
 {
+    int x, y, z;
     for (Voxel v : voxels) {
         if (currentCollar.find(v) != currentCollar.end())
             currentCollar.erase(v);
         for (ExtendedNeighborsIterator<Voxel> it(v); !it.isEnd(); it.next()) {
-            Voxel cur = it.getCurrentValue();
-            if (!(_shape.template contains<MAIN_SHAPE>(cur)) &&
+            it.getCurrentValue(x, y, z);
+            Voxel cur(x, y, z);
+            if (!(_shape.template contains<MAIN_SHAPE>(x, y, z)) &&
                     voxels.find(cur) == voxels.end() &&
                     currentCollar.find(v) == currentCollar.end()){
                 currentCollar.insert(cur);
@@ -622,12 +685,13 @@ void ShapeOverlay<AugmentedShape, Voxel>::_updateNumberOfVoidsAfterRemoving(
                 currentCollar);
 
     std::function<bool(Voxel)> isInShape = [&voxels, this](Voxel v) {
-        return _shape.template contains<MAIN_SHAPE>(v) &&
+        return _shape.template contains<MAIN_SHAPE>(v[0], v[1], v[2]) &&
                 voxels.find(v) == voxels.end() &&
                 _savedVoxels.find(v) == _savedVoxels.end();
     };
 
     _updateNumberOfVoids(currentCollar, isInShape);
+    _testedSinceLastSave = true;
 }
 
 template <class AugmentedShape, class Voxel>
@@ -636,19 +700,23 @@ _updateNumberOfVoidsAfterRemovingComputeCollarChanges(
         voxel_container &voxels,
         collar_container &currentCollar)
 {
+    int x, y, z;
     for (Voxel v : voxels) {
         bool toAdd = false;
         for (ExtendedNeighborsIterator<Voxel> it(v); !it.isEnd(); it.next()) {
-            Voxel cur = it.getCurrentValue();
+            it.getCurrentValue(x, y, z);
+            Voxel cur(x, y, z);
             if (voxels.find(cur) == voxels.end()){
-                if (_shape.template contains<MAIN_SHAPE>(cur)){
+                if (_shape.template contains<MAIN_SHAPE>(x, y, z)){
                     toAdd = true;
                 } else if (currentCollar.find(cur) != currentCollar.end()) {
                     ExtendedNeighborsIterator<Voxel> nIt(cur);
+                    nIt.getCurrentValue(x, y, z);
                     while (!nIt.isEnd() &&
-                           !(_shape.template contains<MAIN_SHAPE>(nIt.getCurrentValue()) &&
-                             voxels.find(nIt.getCurrentValue()) == voxels.end())) {
+                           !(_shape.template contains<MAIN_SHAPE>(x, y, z) &&
+                             voxels.find(Voxel(x, y, z)) == voxels.end())) {
                         nIt.next();
+                        nIt.getCurrentValue(x, y, z);
                     }
                     if (nIt.isEnd()){
                         currentCollar.erase(cur);
@@ -708,11 +776,12 @@ _updateNumberOfVoidsFindCollarComponents(
         collar_container &currentCollar,
         CC &collarComponents)
 {
+    int x, y, z;
     for (Voxel v : currentCollar) {
         collarComponents.initialize(v);
         for (ExtendedNeighborsIterator<Voxel> it(v); !it.isEnd(); it.next()) {
-            Voxel cur = it.getCurrentValue();
-            collarComponents.merge(v, cur);
+            it.getCurrentValue(x, y, z);
+            collarComponents.merge(v, Voxel(x, y, z));
         }
     }
 }
@@ -738,7 +807,9 @@ void ShapeOverlay<AugmentedShape, Voxel>::
 _updateNumberOfVoidsMergeSameVoidComponents(
         std::function<bool(Voxel)>& isInShape,
         CC &collarComponents,
-        std::unordered_map<Voxel,Voxel>& componentRep) {
+        std::unordered_map<Voxel,Voxel>& componentRep)
+{
+    int x, y, z;
     for (auto iter : componentRep) {
         Voxel v = iter.second;
         Point p = {v[0], v[1], v[2]};
@@ -752,8 +823,8 @@ _updateNumberOfVoidsMergeSameVoidComponents(
                     collarComponents.initialize(cur);
                     for (ExtendedNeighborsIterator<Voxel> it(cur); !it.isEnd();
                          it.next()) {
-                        Voxel n = it.getCurrentValue();
-                        collarComponents.merge(cur, n);
+                        it.getCurrentValue(x, y, z);
+                        collarComponents.merge(cur, Voxel(x, y, z));
                     }
                 } else {
                     done = true;
@@ -766,7 +837,8 @@ _updateNumberOfVoidsMergeSameVoidComponents(
 template <class AugmentedShape, class Voxel>
 template <class CellIterator>
 unsigned int ShapeOverlay<AugmentedShape, Voxel>::_computeNumberOfGeneratedCells(
-        Voxel v, std::unordered_set<Voxel> &done,
+        Voxel v,
+        std::unordered_set<Voxel> &done,
         voxel_container &voxels) {
     unsigned int nberOfGenCells = 0;
 
@@ -779,8 +851,8 @@ unsigned int ShapeOverlay<AugmentedShape, Voxel>::_computeNumberOfGeneratedCells
             Voxel cur(*p);
             if ((voxels.find(cur) == voxels.end() &&
                  _savedVoxels.find(cur) == _savedVoxels.end() &&
-                 !(_shape.template contains<MAIN_SHAPE>(cur))) ||
-                    done.find(cur) != done.end()) {
+                 !(_shape.template contains<MAIN_SHAPE>((*p)[0], (*p)[1], (*p)[2])))
+                    || done.find(cur) != done.end()) {
                 valid = false;
             }
             ++p;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -26,11 +26,7 @@
  *  - \ref SquareIterator,
  *  - \ref DualEdgeIterator,
  *  - \ref DualSquareIterator,
- *  - \ref DualCubeIterator,
- *  - \ref NeighborsIterator,
- *  - \ref NeighborsInIterator,
- *  - \ref ExtendedNeighborsIterator,
- *  - \ref ExtendedNeighborsInIterator.
+ *  - \ref DualCubeIterator.
  **/
 
 #include "shape/VoxelSkeletonIterators.h"
@@ -56,7 +52,8 @@ typename VertexIterator<Voxel>::coordinate_type&
 VertexIterator<Voxel>::getCurrentValue() {
     for (unsigned int i = 0; i < _tupleLength; ++i) {
         for (unsigned int j = 0; j < 3; ++j) {
-            _currentCoordinates.at(i)[j] = _base[j] + _shift[_currentPosition][3 * i + j];
+            _currentCoordinates.at(i)[j] =
+                    _base[j] + _shift[_currentPosition][3 * i + j];
         }
     }
 
@@ -82,7 +79,8 @@ typename EdgeIterator<Voxel>::coordinate_type&
 EdgeIterator<Voxel>::getCurrentValue() {
     for (unsigned int i = 0; i < _tupleLength; ++i) {
         for (unsigned int j = 0; j < 3; ++j) {
-            _currentCoordinates.at(i)[j] = _base[j] + _shift[_currentPosition][3 * i + j];
+            _currentCoordinates.at(i)[j] =
+                    _base[j] + _shift[_currentPosition][3 * i + j];
         }
     }
 
@@ -108,7 +106,8 @@ typename PositiveEdgeIterator<Voxel>::coordinate_type&
 PositiveEdgeIterator<Voxel>::getCurrentValue() {
     for (unsigned int i = 0; i < _tupleLength; ++i) {
         for (unsigned int j = 0; j < 3; ++j) {
-            _currentCoordinates.at(i)[j] = _base[j] + _shift[_currentPosition][3 * i + j];
+            _currentCoordinates.at(i)[j] =
+                    _base[j] + _shift[_currentPosition][3 * i + j];
         }
     }
 
@@ -134,7 +133,8 @@ typename SquareIterator<Voxel>::coordinate_type&
 SquareIterator<Voxel>::getCurrentValue() {
     for (unsigned int i = 0; i < _tupleLength; ++i) {
         for (unsigned int j = 0; j < 3; ++j) {
-            _currentCoordinates.at(i)[j] = _base[j] + _shift[_currentPosition][3 * i + j];
+            _currentCoordinates.at(i)[j] =
+                    _base[j] + _shift[_currentPosition][3 * i + j];
         }
     }
 
@@ -160,7 +160,8 @@ typename PositiveSquareIterator<Voxel>::coordinate_type&
 PositiveSquareIterator<Voxel>::getCurrentValue() {
     for (unsigned int i = 0; i < _tupleLength; ++i) {
         for (unsigned int j = 0; j < 3; ++j) {
-            _currentCoordinates.at(i)[j] = _base[j] + _shift[_currentPosition][3 * i + j];
+            _currentCoordinates.at(i)[j] =
+                    _base[j] + _shift[_currentPosition][3 * i + j];
         }
     }
 
@@ -191,7 +192,8 @@ typename DualEdgeIterator<Voxel>::coordinate_type&
 DualEdgeIterator<Voxel>::getCurrentValue() {
     for (unsigned int i = 0; i < _tupleLength; ++i) {
         for (unsigned int j = 0; j < 3; ++j) {
-            _currentCoordinates.at(i)[j] = _base[j] + _shift[_currentPosition][3 * i + j];
+            _currentCoordinates.at(i)[j] =
+                    _base[j] + _shift[_currentPosition][3 * i + j];
         }
     }
 
@@ -226,7 +228,8 @@ typename DualSquareIterator<Voxel>::coordinate_type&
 DualSquareIterator<Voxel>::getCurrentValue() {
     for (unsigned int i = 0; i < _tupleLength; ++i) {
         for (unsigned int j = 0; j < 3; ++j) {
-            _currentCoordinates.at(i)[j] = _base[j] + _shift[_currentPosition][3 * i + j];
+            _currentCoordinates.at(i)[j] =
+                    _base[j] + _shift[_currentPosition][3 * i + j];
         }
     }
 
@@ -278,118 +281,10 @@ typename DualCubeIterator<Voxel>::coordinate_type&
 DualCubeIterator<Voxel>::getCurrentValue() {
     for (unsigned int i = 0; i < _tupleLength; ++i) {
         for (unsigned int j = 0; j < 3; ++j) {
-            _currentCoordinates.at(i)[j] = _base[j] + _shift[_currentPosition][3 * i + j];
+            _currentCoordinates.at(i)[j] =
+                    _base[j] + _shift[_currentPosition][3 * i + j];
         }
     }
 
     return _currentCoordinates;
-}
-
-template <class Voxel>
-NeighborsIterator<Voxel>::NeighborsIterator(const Voxel &voxel)
-    : _base({voxel[0], voxel[1], voxel[2]}), _currentPosition(0) {
-    while (!isEnd() && !_isValidPosition())
-        ++_currentPosition;
-}
-
-template <class Voxel> bool NeighborsIterator<Voxel>::isEnd() {
-    return _currentPosition >= 6;
-}
-
-template <class Voxel> void NeighborsIterator<Voxel>::next() {
-    do {
-        ++_currentPosition;
-    } while (!isEnd() && !_isValidPosition());
-}
-
-template <class Voxel> Voxel NeighborsIterator<Voxel>::getCurrentValue() {
-    return Voxel(_base[0] + _shift[_currentPosition][0],
-            _base[1] + _shift[_currentPosition][1],
-            _base[2] + _shift[_currentPosition][2]);
-}
-
-template <class Voxel> bool NeighborsIterator<Voxel>::_isValidPosition() {
-    for (unsigned int i = 0; i < 3; ++i) {
-        if (_base[i] + _shift[_currentPosition][i] < 0) return false;
-    }
-    return true;
-}
-
-template <class Voxel>
-ExtendedNeighborsIterator<Voxel>::ExtendedNeighborsIterator(const Voxel &voxel)
-    : _base({voxel[0], voxel[1], voxel[2]}), _currentPosition(0) {
-    while (!isEnd() && !_isValidPosition())
-        ++_currentPosition;
-}
-
-template <class Voxel> bool ExtendedNeighborsIterator<Voxel>::isEnd() {
-    return _currentPosition >= 26;
-}
-
-template <class Voxel> void ExtendedNeighborsIterator<Voxel>::next() {
-    do {
-        ++_currentPosition;
-    } while (!isEnd() && !_isValidPosition());
-}
-
-template <class Voxel>
-Voxel ExtendedNeighborsIterator<Voxel>::getCurrentValue() {
-    return Voxel(_base[0] + _shift[_currentPosition][0],
-            _base[1] + _shift[_currentPosition][1],
-            _base[2] + _shift[_currentPosition][2]);
-}
-
-template <class Voxel>
-bool ExtendedNeighborsIterator<Voxel>::_isValidPosition() {
-    for (unsigned int i = 0; i < 3; ++i) {
-        if (_base[i] + _shift[_currentPosition][i] < 0) return false;
-    }
-    return true;
-}
-
-template <class Shape, class Voxel, typename Shape::Level level>
-NeighborsInIterator<Shape, Voxel, level>::NeighborsInIterator(
-        const Voxel &voxel, const Shape &shape)
-    : NeighborsIterator<Voxel>(voxel), _shape(shape) {
-    while (!(NeighborsIterator<Voxel>::isEnd()) && !_isValidPosition()) {
-        NeighborsIterator<Voxel>::next();
-    }
-}
-
-template <class Shape, class Voxel, typename Shape::Level level>
-void NeighborsInIterator<Shape, Voxel, level>::next() {
-    NeighborsIterator<Voxel>::next();
-
-    while (!(NeighborsIterator<Voxel>::isEnd()) && !_isValidPosition()) {
-        NeighborsIterator<Voxel>::next();
-    }
-}
-
-template <class Shape, class Voxel, typename Shape::Level level>
-bool NeighborsInIterator<Shape, Voxel, level>::_isValidPosition() {
-    Voxel v = NeighborsIterator<Voxel>::getCurrentValue();
-    return _shape.template contains<level>(v);
-}
-
-template <class Shape, class Voxel, typename Shape::Level level>
-ExtendedNeighborsInIterator<Shape, Voxel, level>::ExtendedNeighborsInIterator(
-        const Voxel &voxel, const Shape &shape)
-    : ExtendedNeighborsIterator<Voxel>(voxel), _shape(shape) {
-    while (!(ExtendedNeighborsIterator<Voxel>::isEnd()) && !_isValidPosition()) {
-        ExtendedNeighborsIterator<Voxel>::next();
-    }
-}
-
-template <class Shape, class Voxel, typename Shape::Level level>
-void ExtendedNeighborsInIterator<Shape, Voxel, level>::next() {
-    ExtendedNeighborsIterator<Voxel>::next();
-    while (!(ExtendedNeighborsIterator<Voxel>::isEnd()) && !_isValidPosition()) {
-        ExtendedNeighborsIterator<Voxel>::next();
-    }
-}
-
-template <class Shape, class Voxel, typename Shape::Level level>
-bool ExtendedNeighborsInIterator<Shape, Voxel, level>::_isValidPosition() {
-    Voxel v = ExtendedNeighborsIterator<Voxel>::getCurrentValue();
-    return _shape.template contains<level>(v);
 }

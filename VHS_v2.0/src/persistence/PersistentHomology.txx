@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -51,19 +51,27 @@ void PersistentHomology<Skeleton, Voxel, minDim, maxDim>::reduceMatrix()
     const index nberOfColumns = _matrix.getNumberOfColumns();
     std::vector<index> currentColumnWithPivot(nberOfColumns, -1);
 
-    for (index curColIndex = 0; curColIndex < nberOfColumns; curColIndex++) {
-        index pivot = _matrix.getPivot(curColIndex);
-        while (pivot != -1 && currentColumnWithPivot[pivot] != -1) {
-            _matrix.addColTo(currentColumnWithPivot[pivot], curColIndex);
-            pivot = _matrix.getPivot(curColIndex);
-        }
-        if (pivot != -1) {
-            currentColumnWithPivot[pivot] = curColIndex;
-            if (_indexToTimestamp.at(pivot) != _indexToTimestamp.at(curColIndex)){
-                _pairs.push_back(std::make_pair(pivot, curColIndex));
+    for (index curDim = maxDim; curDim >= std::max(1U, minDim); curDim-- ) {
+        for (index curColIndex = 0; curColIndex < nberOfColumns; curColIndex++)
+        {
+            if (_matrix.getDimension(curColIndex) == curDim)
+            {
+                index pivot = _matrix.getPivot(curColIndex);
+                while (pivot != -1 && currentColumnWithPivot[pivot] != -1) {
+                    _matrix.addColTo(currentColumnWithPivot[pivot], curColIndex);
+                    pivot = _matrix.getPivot(curColIndex);
+                }
+                if (pivot != -1) {
+                    currentColumnWithPivot[pivot] = curColIndex;
+                    _matrix.clearColumn(pivot);
+                    if (_indexToTimestamp.at(pivot) != _indexToTimestamp.at(curColIndex))
+                    {
+                        _pairs.push_back(std::make_pair(pivot, curColIndex));
+                    }
+                }
+                _matrix.finalize(curColIndex);
             }
         }
-        _matrix.finalize(curColIndex);
     }
 
     _isReduced = true;
@@ -72,7 +80,7 @@ void PersistentHomology<Skeleton, Voxel, minDim, maxDim>::reduceMatrix()
 template <class Skeleton, class Voxel,
           unsigned int minDim, unsigned int maxDim>
 const std::vector<
-    typename PersistentHomology<Skeleton, Voxel, minDim, maxDim>::persistent_pair
+    typename PersistentHomology<Skeleton,Voxel,minDim,maxDim>::persistent_pair
 >&
 PersistentHomology<Skeleton, Voxel, minDim, maxDim>::getPersistentPairs() const
 {
@@ -155,7 +163,7 @@ _constructMatrix(Skeleton &skeleton)
     cell_iterator<3> cubeEnd = cells.end<3>();
 
     index current = 0;
-    for (int timestamp = 0; timestamp < 3; ++timestamp) {
+    for (unsigned int timestamp = 0; timestamp < 3; ++timestamp) {
         if (timestamp == 2) _neighborhoodStart = current;
         if constexpr (minDim == 0)
                 _addVertexColumns(vertexIt, vertexEnd, timestamp,
@@ -188,9 +196,12 @@ _constructFiltration(Skeleton &skeleton, CellContainer &cells)
          it != skeleton.template end<dim>();
          ++it)
     {
-        if ((*it).getTimestamp() == 0) cells.insertAt<dim>(*it, coreIndex++);
-        else if ((*it).getTimestamp() == 1) cells.insertAt<dim>(*it, shapeIndex--);
-        else cells.insertAt<dim>(*it, neighborhoodIndex++);
+        if ((*it).getTimestamp() == 0)
+            cells.insertAt<dim>(*it, coreIndex++);
+        else if ((*it).getTimestamp() == 1)
+            cells.insertAt<dim>(*it, shapeIndex--);
+        else
+            cells.insertAt<dim>(*it, neighborhoodIndex++);
     }
 }
 
@@ -200,7 +211,8 @@ void PersistentHomology<Skeleton, Voxel, minDim, maxDim>::
 _addVertexColumns(
         cell_iterator<0> &cellIt,
         cell_iterator<0> &endIt,
-        int timestamp, index &current,
+        unsigned int timestamp,
+        index &current,
         std::unordered_map<Cell<0>, index, Cell<0>::CellHasher> &cellToIndex,
         Skeleton &skeleton)
 {
@@ -226,10 +238,11 @@ void PersistentHomology<Skeleton, Voxel, minDim, maxDim>::
 _addColumns(
         cell_iterator<dim> &cellIt,
         cell_iterator<dim> &endIt,
-        int timestamp, index &current,
-        std::unordered_map<Cell<dim>, index, typename Cell<dim>::CellHasher>
+        unsigned int timestamp,
+        index &current,
+        std::unordered_map<Cell<dim>,index,typename Cell<dim>::CellHasher>
         &cellToIndex,
-        std::unordered_map<Cell<dim - 1>, index, typename Cell<dim - 1>::CellHasher>
+        std::unordered_map<Cell<dim-1>,index,typename Cell<dim - 1>::CellHasher>
         &boundaryCellToIndex,
         Skeleton &skeleton)
 {
@@ -239,7 +252,7 @@ _addColumns(
     Cell<dim> currentCell = *cellIt;
     while (cellIt != endIt && currentCell.getTimestamp() == timestamp) {
         auto boundary = currentCell.getBoundary();
-        if (dim != minDim) {
+        if constexpr (dim != minDim) {
             for (Cell<dim - 1> cell : boundary) {
                 col.push_back(boundaryCellToIndex.at(cell));
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -23,147 +23,110 @@
  * Test file for the Candidate Validator class.
  **/
 
-#include <algorithm>
 #include <gtest/gtest.h>
-#include <random>
-#include <vector>
 
-#include "shape/AddableShape.h"
-#include "shape/RemovableShape.h"
+#include "simplifier/CandidateValidator.h"
+#include "simplifier/AdditiveCandidateGenerator.h"
+#include "simplifier/SubstractiveCandidateGenerator.h"
+#include "shape/Voxel.h"
 #include "shape/EditableShape.h"
 #include "shape/AugmentedShape.h"
 #include "shape/RestrictedShapeCopy.h"
 #include "shape/InvertedRestrictedShapeCopy.h"
-#include "shape/Voxel.h"
-#include "simplifier/AdditiveH0CandidateGenerator.h"
-#include "simplifier/AdditiveH1CandidateGenerator.h"
-#include "simplifier/AdditiveH2CandidateGenerator.h"
-#include "simplifier/SubstractiveH0CandidateGenerator.h"
-#include "simplifier/SubstractiveH1CandidateGenerator.h"
-#include "simplifier/SubstractiveH2CandidateGenerator.h"
-#include "simplifier/CandidateValidator.h"
+#include "shape/ClosedRestrictedShapeCopy.h"
 
 #include "test_examples.h"
 
-using shape_simplification::shape::AddableShape;
-using shape_simplification::shape::RemovableShape;
-using shape_simplification::shape::EditableShape;
+using shape_simplification::simplifier::CandidateValidator;
+using shape_simplification::simplifier::AdditiveCandidateGenerator;
+using shape_simplification::simplifier::SubstractiveCandidateGenerator;
 using shape_simplification::shape::AugmentedShape;
+using shape_simplification::shape::EditableShape;
+using shape_simplification::shape::Voxel;
 using shape_simplification::shape::RestrictedShapeCopy;
 using shape_simplification::shape::InvertedRestrictedShapeCopy;
-using shape_simplification::shape::Voxel;
-using shape_simplification::simplifier::AdditiveH0CandidateGenerator;
-using shape_simplification::simplifier::AdditiveH1CandidateGenerator;
-using shape_simplification::simplifier::AdditiveH2CandidateGenerator;
-using shape_simplification::simplifier::SubstractiveH0CandidateGenerator;
-using shape_simplification::simplifier::SubstractiveH1CandidateGenerator;
-using shape_simplification::simplifier::SubstractiveH2CandidateGenerator;
-using shape_simplification::simplifier::CandidateValidator;
+using shape_simplification::shape::ClosedRestrictedShapeCopy;
 
-using AugAddShape = AugmentedShape<AddableShape<Voxel>, Voxel>;
-using AugSubShape = AugmentedShape<RemovableShape<Voxel>, Voxel>;
-using AugEdiShape = AugmentedShape<EditableShape<Voxel>, Voxel>;
-
-using RestrAddShape = RestrictedShapeCopy<AugAddShape, Voxel>;
-using RestrSubShape = RestrictedShapeCopy<AugSubShape, Voxel>;
-using RestrEdiShape = RestrictedShapeCopy<AugEdiShape, Voxel>;
-using InvRestrAddShape = InvertedRestrictedShapeCopy<AugAddShape, Voxel>;
-using InvRestrSubShape = InvertedRestrictedShapeCopy<AugSubShape, Voxel>;
-using InvRestrEdiShape = InvertedRestrictedShapeCopy<AugEdiShape, Voxel>;
-
-template <class AugShape, class RestrShape, class Voxel>
-void verifyAdditiveCandidates(std::string name);
-template <class AugShape, class RestrShape, class Voxel>
-void verifySubstractiveCandidates(std::string name);
+using Shape = EditableShape<Voxel>;
+using AugShape = AugmentedShape<Shape,Voxel>;
+using RestrShape = RestrictedShapeCopy<Shape,Voxel>;
+using InvRestrShape = InvertedRestrictedShapeCopy<Shape,Voxel>;
+using ClRestrShape = ClosedRestrictedShapeCopy<Shape,Voxel>;
 
 TEST(ValidatorTest, AdditiveCandidates) {
-    verifyAdditiveCandidates<
-            AugAddShape,
-            RestrictedShapeCopy<AugAddShape, Voxel>,
-            Voxel>("AddableShape");
-    verifyAdditiveCandidates<
-            AugSubShape,
-            RestrictedShapeCopy<AugSubShape, Voxel>,
-            Voxel>("RemovableShape");
-    verifyAdditiveCandidates<
-            AugEdiShape,
-            RestrictedShapeCopy<AugEdiShape, Voxel>,
-            Voxel>("EditableShape");
-}
-
-template <class AugShape, class RestrShape, class Voxel>
-void verifyAdditiveCandidates(std::string name){
-    using valid_candidate_container =
-    typename CandidateValidator<AugShape, Voxel>::valid_candidate_container;
+    using vcc = CandidateValidator<AugShape,Voxel>::valid_candidate_container;
 
     std::vector<Voxel> voxels;
-    std::vector<typename AugShape::Level> minLevels;
+    buildExample1Extended<Voxel>(voxels);
 
-    buildExample1Extended<AugShape,Voxel>(voxels, minLevels);
+    AugShape shape(voxels);
+    AdditiveCandidateGenerator<AugShape,Voxel> gen(shape);
+    CandidateValidator<AugShape,Voxel> val(shape);
 
-    AugShape shape(voxels, minLevels);
-    AdditiveH0CandidateGenerator<AugShape, Voxel> gen0(shape);
-    AdditiveH1CandidateGenerator<AugShape, Voxel> gen1(shape);
-    AdditiveH2CandidateGenerator<AugShape, Voxel> gen2(shape);
-    CandidateValidator<AugShape, Voxel> val(shape);
+    const vcc &res = val.verifyAdditiveCandidatesValidity(
+                gen.generatePeristenceCandidates<RestrShape>(20, true));
+    ASSERT_EQ(res.size(), 2);
+    ASSERT_TRUE(res.find(Voxel(1,4,2)) != res.end());
+    ASSERT_TRUE(res.find(Voxel(1,5,4)) != res.end());
 
-    const valid_candidate_container &cand00 = val.verifyAdditiveCandidatesValidity(
-                gen0.template generatePeristenceCandidates<RestrShape>(10));
-    ASSERT_EQ(1, cand00.size()) << name;
-    ASSERT_EQ(Voxel(1, 5, 4), *(cand00.begin())) << name;
+    val.verifyAdditiveCandidatesValidity(
+                gen.generateH0OneVoxelCandidates());
+    ASSERT_EQ(res.size(), 1);
+    ASSERT_TRUE(res.find(Voxel(1,5,4)) != res.end());
 
-    const valid_candidate_container &cand01 =
-            val.verifyAdditiveCandidatesValidity(gen0.generateOneVoxelCandidates());
-    ASSERT_EQ(1, cand01.size()) << name;
-    ASSERT_EQ(Voxel(1, 5, 4), *(cand01.begin())) << name;
-
-    const valid_candidate_container &cand10 =
-            val.verifyAdditiveCandidatesValidity(
-                gen1.template generatePeristenceCandidates<RestrShape>(10));
-    ASSERT_EQ(1, cand10.size()) << name;
-    ASSERT_EQ(Voxel(1, 4, 2), *(cand10.begin())) << name;
+    val.verifyAdditiveCandidatesValidity(
+                gen.generateH2OneVoxelCandidates());
+    ASSERT_EQ(res.size(), 0);
 }
 
 TEST(ValidatorTest, SubstractiveCandidates) {
-    verifySubstractiveCandidates<
-            AugSubShape,
-            InvertedRestrictedShapeCopy<RemovableShape<Voxel>, Voxel>,
-            Voxel>("RemovableShape");
-    verifySubstractiveCandidates<
-            AugEdiShape,
-            InvertedRestrictedShapeCopy<EditableShape<Voxel>, Voxel>,
-            Voxel>("EditableShape");
-}
-
-template <class AugShape, class InvRestrShape, class Voxel>
-void verifySubstractiveCandidates(std::string name){
-    using valid_candidate_container =
-    typename CandidateValidator<AugShape, Voxel>::valid_candidate_container;
+    using vcc = CandidateValidator<AugShape,Voxel>::valid_candidate_container;
 
     std::vector<Voxel> voxels;
-    std::vector<typename AugShape::Level> minLevels;
+    buildExample1Extended<Voxel>(voxels);
 
-    buildExample1Extended<AugShape,Voxel>(voxels, minLevels);
+    AugShape shape(voxels);
+    SubstractiveCandidateGenerator<AugShape,Voxel> gen(shape);
+    CandidateValidator<AugShape,Voxel> val(shape);
 
-    AugShape shape(voxels, minLevels);
-    SubstractiveH0CandidateGenerator<AugShape, Voxel> gen0(shape);
-    SubstractiveH1CandidateGenerator<AugShape, Voxel> gen1(shape);
-    SubstractiveH2CandidateGenerator<AugShape, Voxel> gen2(shape);
-    CandidateValidator<AugShape, Voxel> val(shape);
+    const vcc &res = val.verifySubstractiveCandidatesValidity(
+                gen.generatePeristenceCandidates<InvRestrShape>(20, true));
+    ASSERT_EQ(res.size(), 57);
 
-    const valid_candidate_container &cand00 = val.verifySubstractiveCandidatesValidity(
-                gen0.generateSubstractibleComponents(-1));
+    val.verifySubstractiveCandidatesValidity(
+                gen.generateH0OneVoxelCandidates());
+    ASSERT_EQ(res.size(), 1);
+    ASSERT_TRUE(res.find(Voxel(2,5,4)) != res.end());
 
-    ASSERT_EQ(0, cand00.size()) << name;
-
-    const valid_candidate_container &cand10 =
-            val.verifySubstractiveCandidatesValidity(
-                gen1.template generatePeristenceCandidates<InvRestrShape>(10));
-
-    ASSERT_NE(0, cand10.size()) << name;
-
-    const valid_candidate_container &cand20 =
-            val.verifySubstractiveCandidatesValidity(
-                gen2.template generatePeristenceCandidates<InvRestrShape>(10));
-    ASSERT_EQ(0, cand20.size()) << name;
+    val.verifySubstractiveCandidatesValidity(
+                gen.generateH2OneVoxelCandidates());
+    ASSERT_EQ(res.size(), 1);
+    ASSERT_TRUE((*res.begin())[0] >= 10);
+    ASSERT_TRUE((*res.begin())[1] >= 10);
+    ASSERT_TRUE((*res.begin())[2] >= 10);
 }
+
+TEST(ValidatorTest, SubstractiveCandidatesWithH2Guarantee) {
+    using vcc = CandidateValidator<AugShape,Voxel>::valid_candidate_container;
+
+    std::vector<Voxel> voxels;
+    buildExample1Translated<Voxel>(voxels);
+
+    AugShape shape(voxels);
+    SubstractiveCandidateGenerator<AugShape,Voxel> gen(shape);
+    CandidateValidator<AugShape,Voxel> val(shape);
+
+    const vcc &res = val.verifySubstractiveCandidatesValidityWithH2Guarantee(
+                gen.generatePeristenceCandidates<InvRestrShape>(20, true));
+    ASSERT_EQ(res.size(), 1);
+
+    val.verifySubstractiveCandidatesValidityWithH2Guarantee(
+                gen.generateH0OneVoxelCandidates());
+    ASSERT_EQ(res.size(), 1);
+    ASSERT_TRUE(res.find(Voxel(2,5,4)) != res.end());
+
+    val.verifySubstractiveCandidatesValidityWithH2Guarantee(
+                gen.generateH2OneVoxelCandidates());
+    ASSERT_EQ(res.size(), 0);
+}
+

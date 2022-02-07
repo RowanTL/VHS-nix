@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -54,8 +54,8 @@ using shape_simplification::shape::DualSkeleton;
 
 /**
  * class TheoreticalOptimum
- * @brief Computes the theoretical optimum for the betti numbers of the inclusion
- * from the core to the neighborhood.
+ * @brief Computes the theoretical optimum for the betti numbers of the
+ * inclusion from the core to the neighborhood.
  **/
 class TheoreticalOptimum {
 public:
@@ -79,12 +79,12 @@ public:
 
     /**
      * @brief Loads shape from a stack of png images.
-     * The images are loaded 1-to-1, so, they should already be processed as desired.
-     * Recalling this method will overwrite the previous shape.
+     * The images are loaded 1-to-1, so, they should already be processed as
+     * desired. Recalling this method will overwrite the previous shape.
      * @param inputFileNameBase Base for the input file names.
-     * Each image should end with 'xxxx.png', were 'xxxx' is the position of the image in
-     * the stack written with four digits. The base is was preceed this number
-     * (with the absolute or relative path).
+     * Each image should end with 'xxxx.png', were 'xxxx' is the position of
+     * the image in the stack written with four digits. The base is was preceed
+     * this number (with the absolute or relative path).
      * @param numberOfImages The number of images in the stack to load.
      */
     void loadPreprocessedImage(std::string inputFileNameBase,
@@ -100,7 +100,8 @@ public:
 private:
     std::array<unsigned int, 3> _minBettyNumbers;   ///< Optimal Betty numbers.
     Shape _shape;                                   ///< Latest loaded shape.
-    unsigned int _nberOfCoreCells;                  ///< Number of cells in the core of @p _shape.
+    unsigned int _nberOfCoreCells;                  ///< Number of cells in the
+                                                    ///< core of @p _shape.
 
     /**
      * @brief computes the optimum.
@@ -136,8 +137,8 @@ private:
     void _addVertexColumns(
             cell_iterator<0> &cellIt,
             cell_iterator<0> &endIt,
-            int timestamp, index &current,
-            std::unordered_map<Cell<0>, index, Cell<0>::CellHasher> &cellToIndex,
+            unsigned int timestamp, index &current,
+            std::unordered_map<Cell<0>,index,Cell<0>::CellHasher> &cellToIndex,
             matrix_type &matrix,
             std::vector<timestamp_type>& indexToTimestamp);
     template <unsigned int dim>
@@ -156,7 +157,7 @@ private:
     void
     _addColumns(cell_iterator<dim> &cellIt,
                 cell_iterator<dim> &endIt,
-                int timestamp, index &current,
+                unsigned int timestamp, index &current,
                 std::unordered_map<Cell<dim>, index,
                 typename Cell<dim>::CellHasher> &cellToIndex,
                 std::unordered_map<Cell<dim - 1>, index,

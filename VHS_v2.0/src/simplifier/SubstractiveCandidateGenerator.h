@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -21,42 +21,42 @@
 #pragma once
 
 /**
- * @file BaseCandidateGenerator.h
- * Contains the declaration of the \ref BaseCandidateGenerator class.
+ * @file SubstractiveCandidateGenerator.h
+ * Contains the declaration of the \ref SubstractiveCandidateGenerator class.
  **/
 
 #include <iostream>
-#include <vector>
-#include <unordered_set>
+#include <list>
+#include <queue>
 
 #include "persistence/PersistentHomology.h"
-#include "shape/DualSkeleton.h"
+#include "util/Point.h"
 #include "shape/AugmentedShape.h"
 #include "shape/ShapeOverlay.h"
-#include "util/Point.h"
+#include "shape/ShapeUtilities.h"
+#include "shape/InvertedAugmentedShape.h"
+#include "shape/DualSkeleton.h"
 
 namespace shape_simplification{ namespace simplifier {
 
 using persistence::PersistentHomology;
+using shape::ExtendedNeighborsIterator;
+using shape::Level;
+using shape::CORE;
+using shape::MAIN_SHAPE;
+using shape::NEIGHBORHOOD;
 using shape::DualSkeleton;
-using shape::ShapeOverlay;
 using util::Point;
 
-template <class AugmentedShape, class Voxel, int dim>
+template <class AugmentedShape, class Voxel>
 /**
- * class BaseCandidateGenerator
- * @brief Generates additive candidates for H0.
+ * class SubstractiveCandidateGenerator
+ * @brief Generates substractive candidates.
  * @tparam AugmentedShape Augmented shape class.
  * @tparam Voxel Voxel class used by the augmented shape.
- * @tparam dim Dimension of the generators.
  **/
-class BaseCandidateGenerator {
+class SubstractiveCandidateGenerator {
 public:
-    using Level = typename AugmentedShape::Level;
-    static const Level CORE = AugmentedShape::CORE;
-    static const Level MAIN_SHAPE = AugmentedShape::MAIN_SHAPE;
-    static const Level NEIGHBORHOOD = AugmentedShape::NEIGHBORHOOD;
-    static const Level OUTSIDE = AugmentedShape::OUTSIDE;
     template <Level level>
     using neighbor_iterator =
         typename AugmentedShape::template neighbor_iterator<level>;
@@ -67,24 +67,32 @@ public:
     using candidate_container = std::vector<voxel_container>;
     using candidate_iterator = typename candidate_container::iterator;
 
-    template <class RestrictedShape>
+    /**
+     * @brief Constructor.
+     * @param shape Shape.
+     **/
+    SubstractiveCandidateGenerator(AugmentedShape &shape);
+    /**
+     * @brief Destructor.
+     **/
+    ~SubstractiveCandidateGenerator();
+
+    template <class InvertedRestrictedShape>
     /**
      * @brief Generates candidates using persistence.
-     * @tparam RestrictedShape If additive: RestrictedShape class;
-     * if substractive: InvertedRestrictedShape class.
+     * @tparam InvertedRestrictedShape RestrictedShape class
      * @param width Box width. The candidates are generated
      * for each box instead of the whole shape.
-     * @param silent If true, no terminal output is produced.
+     * @param silent If true, no text is displayed in the terminal.
      * @return Reference to the resulting candidates.
      * Valid only until the next generating method from this class is called.
      */
     const candidate_container &generatePeristenceCandidates(
             int width, bool silent = false);
-    template <class RestrictedShape>
+    template <class InvertedRestrictedShape>
     /**
      * @brief Generates candidates using persistence in specific boxes.
-     * @tparam RestrictedShape If additive: RestrictedShape class;
-     * if substractive: InvertedRestrictedShape class.
+     * @tparam InvertedRestrictedShape RestrictedShape class.
      * @param width Box width.
      * @param lowerPoints left-most bottom coordinates of the boxes to use.
      * @param silent If true, no terminal output is produced.
@@ -92,12 +100,13 @@ public:
      * Valid only until the next generating method from this class is called.
      */
     const candidate_container &generatePeristenceCandidates(
-            int width, std::unordered_set<Point>& lowerPoints, bool silent = false);
-    template <class RestrictedShape>
+            int width,
+            std::unordered_set<Point>& lowerPoints,
+            bool silent = false);
+    template <class InvertedRestrictedShape>
     /**
      * @brief Generates candidates using persistence in the given box.
-     * @tparam RestrictedShape If additive: RestrictedShape class;
-     * if substractive: InvertedRestrictedShape class.
+     * @tparam InvertedRestrictedShape RestrictedShape class.
      * @param width Box width.
      * @param lowerPoint left-most bottom coordinate of the box to use.
      * @param silent If true, no terminal output is produced.
@@ -106,46 +115,42 @@ public:
      */
     const candidate_container &generatePeristenceCandidates(
             int width, Point lowerPoint, bool silent = false);
-    template <class ClosedRestrictedShape>
+
+    template <class ClosedInvertedRestrictedShape>
     /**
-     * @brief If additive: generates H2-safe candidates using persistence;
-     * if substractive: generates H0-safe candidates using persistence.
-     * @tparam ClosedRestrictedShape If additive: RestrictedShape class
-     * with closed borders; if substractive: InvertedRestrictedShape class
-     * with closed borders.
+     * @brief Generates H0-safe candidates using persistence.
+     * @tparam ClosedInvertedRestrictedShape InvertedRestrictedShape class with
+     * closed borders.
      * @param width Box width. The candidates are generated
      * for each box instead of the whole shape.
-     * @param silent If true, no terminal output is produced.
      * @return Reference to the resulting candidates.
      * Valid only until the next generating method from this class is called.
      */
     const candidate_container &generatePeristenceCandidatesWithGuarantee(
             int width, bool silent = false);
-    template <class ClosedRestrictedShape>
+    template <class ClosedInvertedRestrictedShape>
     /**
-     * @brief If additive: generates H2-safe candidates using persistence;
-     * if substractive: generates H0-safe candidates using persistence
-     * in specific boxes.
-     * @tparam ClosedRestrictedShape If additive: RestrictedShape class
-     * with closed borders; if substractive: InvertedRestrictedShape class
-     * with closed borders.
-     * @param width Box width.
+     * @brief Generates H0-safe candidates using persistence in specific boxes.
+     * @tparam ClosedInvertedRestrictedShape InvertedRestrictedShape class with
+     * closed borders.
+     * @param width Box width. The candidates are generated
+     * for each box instead of the whole shape.
      * @param lowerPoints left-most bottom coordinates of the boxes to use.
      * @param silent If true, no terminal output is produced.
      * @return Reference to the resulting candidates.
      * Valid only until the next generating method from this class is called.
      */
     const candidate_container &generatePeristenceCandidatesWithGuarantee(
-            int width, std::unordered_set<Point>& lowerPoints, bool silent = false);
-    template <class ClosedRestrictedShape>
+            int width,
+            std::unordered_set<Point>& lowerPoints,
+            bool silent = false);
+    template <class ClosedInvertedRestrictedShape>
     /**
-     * @brief If additive: generates H2-safe candidates using persistence;
-     * if substractive: generates H0-safe candidates using persistence
-     * in the given box.
-     * @tparam ClosedRestrictedShape If additive: RestrictedShape class
-     * with closed borders; if substractive: InvertedRestrictedShape class
-     * with closed borders.
-     * @param width Box width.
+     * @brief Generates H0-safe candidates using persistence in the given box.
+     * @tparam ClosedInvertedRestrictedShape InvertedRestrictedShape class with
+     * closed borders.
+     * @param width Box width. The candidates are generated
+     * for each box instead of the whole shape.
      * @param lowerPoint left-most bottom coordinate of the box to use.
      * @param silent If true, no terminal output is produced.
      * @return Reference to the resulting candidates.
@@ -153,6 +158,34 @@ public:
      */
     const candidate_container &generatePeristenceCandidatesWithGuarantee(
             int width, Point lowerPoint, bool silent = false);
+
+    /**
+     * @brief Retrieves connected components without core elements
+     * whose size is lower than given maximal size.
+     * @param maxSize Maximal size of the connected components.
+     * @return Reference to the resulting candidates.
+     * Valid only until the next generating method from this class is called.
+     */
+    const candidate_container &generateSubstractibleComponents(int maxSize);
+    /**
+     * @brief Retrieves all the connected components without core elements.
+     * @return Reference to the resulting candidates.
+     * Valid only until the next generating method from this class is called.
+     */
+    const candidate_container &generateSubstractibleComponents();
+
+    /**
+     * @brief Generates H0-candidates which contains only one voxel.
+     * @return Reference to the resulting candidates.
+     * Valid only until the next generating method from this class is called.
+     */
+    const candidate_container &generateH0OneVoxelCandidates();
+    /**
+     * @brief Generates H2-candidates which contains only one voxel.
+     * @return Reference to the resulting candidates.
+     * Valid only until the next generating method from this class is called.
+     */
+    const candidate_container &generateH2OneVoxelCandidates();
 
     /**
      * @brief Tests if the candidate generated are additive.
@@ -160,22 +193,11 @@ public:
      */
     static constexpr bool isAdditive();
 
-protected:
-    /**
-     * @brief Constructor.
-     * @param shape Shape.
-     **/
-    BaseCandidateGenerator(AugmentedShape &shape);
-    /**
-     * @brief Destructor.
-     **/
-    ~BaseCandidateGenerator();
-
-    candidate_container _candidates;    ///< Resulting candidates. Reseted by each
-                                        ///< generating method call.
-    AugmentedShape &_shape;             ///< Underlying shape.
-
 private:
+    candidate_container _candidates; ///< Resulting candidates. Reseted by each
+                                     ///< generating method call.
+    AugmentedShape &_shape;          ///< Underlying shape.
+
     /**
      * @brief Generates peristence candidates.
      * @param width Box width.
@@ -214,20 +236,22 @@ private:
             std::function<void(Point&,Point&)> generateCandidates,
             bool silent = false);
 
-    template <class RestrictedShape>
+    template <class InvertedRestrictedShape>
     /**
      * @brief Generates candidates using persistence inside the given box.
-     * @tparam RestrictedShape RestrictedShape class.
+     * @tparam InvertedRestrictedShape InvertedRestrictedShape class.
      * @param lowerCorner Lower left corner of the box.
      * @param upperCorner Upper right corner of the box.
      */
     void _generatePeristenceCandidatesInBox(Point &lowerCorner,
                                             Point &upperCorner);
 
-    template <class ClosedRestrictedShape>
+    template <class ClosedInvertedRestrictedShape>
     /**
-     * @brief Generates guaranteeded candidates using persistence inside the given box.
-     * @tparam ClosedRestrictedShape RestrictedShape class with closed borders.
+     * @brief Generates H0-safe candidates using persistence inside
+     * the given box.
+     * @tparam ClosedInvertedRestrictedShape InvertedRestrictedShape class
+     * with closed borders.
      * @param lowerCorner Lower left corner of the box.
      * @param upperCorner Upper right corner of the box.
      */
@@ -235,6 +259,6 @@ private:
             Point &lowerCorner, Point &upperCorner);
 };
 
-#include "BaseCandidateGenerator.txx"
+#include "SubstractiveCandidateGenerator.txx"
 
 }} // namespace shape_simplification::simplifier

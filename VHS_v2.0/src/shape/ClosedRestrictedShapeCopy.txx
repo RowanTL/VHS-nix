@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -20,8 +20,8 @@
 
 /**
  * @file ClosedRestrictedShapeCopy.txx
- * Contains the implementation of the methods in the \ref ClosedRestrictedShapeCopy
- * class.
+ * Contains the implementation of the methods in the
+ * \ref ClosedRestrictedShapeCopy class.
  **/
 
 #include "ClosedRestrictedShapeCopy.h"
@@ -47,12 +47,14 @@ ClosedRestrictedShapeCopy<Shape, Voxel>::ClosedRestrictedShapeCopy(
             {
                 if (lowerBound[0] > 0){
                     Voxel vl(lowerBound[0] - 1, y, z);
+                    vl.setLevel(CORE);
                     voxels.at(0).insert(vl);
                     voxels.at(1).insert(vl);
                     voxels.at(2).insert(vl);
                 }
                 if (upperBound[0] < max){
                     Voxel vu(upperBound[0] + 1, y, z);
+                    vu.setLevel(CORE);
                     voxels.at(0).insert(vu);
                     voxels.at(1).insert(vu);
                     voxels.at(2).insert(vu);
@@ -72,12 +74,14 @@ ClosedRestrictedShapeCopy<Shape, Voxel>::ClosedRestrictedShapeCopy(
             {
                 if (lowerBound[1] > 0){
                     Voxel vl(x, lowerBound[1] - 1, z);
+                    vl.setLevel(CORE);
                     voxels.at(0).insert(vl);
                     voxels.at(1).insert(vl);
                     voxels.at(2).insert(vl);
                 }
                 if (upperBound[1] < max){
                     Voxel vu(x, upperBound[1] + 1, z);
+                    vu.setLevel(CORE);
                     voxels.at(0).insert(vu);
                     voxels.at(1).insert(vu);
                     voxels.at(2).insert(vu);
@@ -97,12 +101,14 @@ ClosedRestrictedShapeCopy<Shape, Voxel>::ClosedRestrictedShapeCopy(
             {
                 if (lowerBound[2] > 0){
                     Voxel vl(x, y, lowerBound[2] - 1);
+                    vl.setLevel(CORE);
                     voxels.at(0).insert(vl);
                     voxels.at(1).insert(vl);
                     voxels.at(2).insert(vl);
                 }
                 if (upperBound[2] < max){
                     Voxel vu(x, y, upperBound[2] + 1);
+                    vu.setLevel(CORE);
                     voxels.at(0).insert(vu);
                     voxels.at(1).insert(vu);
                     voxels.at(2).insert(vu);
@@ -110,6 +116,11 @@ ClosedRestrictedShapeCopy<Shape, Voxel>::ClosedRestrictedShapeCopy(
             }
         }
     }
+
+    std::array<unsigned int, 3> &dimensions = BaseShape<Voxel>::_getShapeDimensions();
+    dimensions[0] = upperBound[0] + 1;
+    dimensions[1] = upperBound[1] + 1;
+    dimensions[2] = upperBound[2] + 1;
 }
 
 template <class Shape, class Voxel>

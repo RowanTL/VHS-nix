@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -28,7 +28,8 @@
 using namespace shape_simplification::util;
 
 template <class Element>
-UnionFindDelete<Element>::UnionFindDelete() : _numberOfComponents(0), _maxIndex(-1) {}
+UnionFindDelete<Element>::UnionFindDelete() :
+    _numberOfComponents(0), _maxIndex(-1) {}
 
 template <class Element>
 UnionFindDelete<Element>::UnionFindDelete(const UnionFindDelete& ufd)
@@ -38,13 +39,19 @@ UnionFindDelete<Element>::UnionFindDelete(const UnionFindDelete& ufd)
     for (auto iter : _nodes){
         Node& cur = _nodes.at(iter.first);
         if (cur.getParent() != nullptr)
-            cur.setParent(&(_elementToNode(cur.getParent()->getElement())));
-        cur.setRightSibling(&(_elementToNode(cur.getRightSibling()->getElement())));
-        cur.setLeftSibling(&(_elementToNode(cur.getLeftSibling()->getElement())));
+            cur.setParent(&(
+                    _elementToNode(cur.getParent()->getElement())));
+        cur.setRightSibling(&(
+                _elementToNode(cur.getRightSibling()->getElement())));
+        cur.setLeftSibling(&(
+                _elementToNode(cur.getLeftSibling()->getElement())));
         if (cur.getRightMostChild() != nullptr)
-            cur.setRightMostChild(&(_elementToNode(cur.getRightMostChild()->getElement())));
-        cur.setPrevDFS(&(_elementToNode(cur.getPrevDFS()->getElement())));
-        cur.setNextDFS(&(_elementToNode(cur.getNextDFS()->getElement())));
+            cur.setRightMostChild(&(
+                    _elementToNode(cur.getRightMostChild()->getElement())));
+        cur.setPrevDFS(&(
+                _elementToNode(cur.getPrevDFS()->getElement())));
+        cur.setNextDFS(&(
+                _elementToNode(cur.getNextDFS()->getElement())));
         std::vector<Node*> nodes;
         std::unordered_set<Node*>& ch = cur.getNonLeafChildren();
         for (Node* n : ch){
@@ -84,10 +91,14 @@ void UnionFindDelete<Element>::merge(const Element &e1, const Element &e2) {
 
     if (e1Root == e2Root) return;
 
-    if (e2Root.isInStrictSmallerThan(4)) _mergeSmall(e1Root, e2Root);
-    else if (e1Root.isInStrictSmallerThan(4)) _mergeSmall(e2Root, e1Root);
-    else if (e2Root.getRank() < e1Root.getRank()) _mergeStandard(e1Root, e2Root);
-    else _mergeStandard(e2Root, e1Root);
+    if (e2Root.isInStrictSmallerThan(4))
+        _mergeSmall(e1Root, e2Root);
+    else if (e1Root.isInStrictSmallerThan(4))
+        _mergeSmall(e2Root, e1Root);
+    else if (e2Root.getRank() < e1Root.getRank())
+        _mergeStandard(e1Root, e2Root);
+    else
+        _mergeStandard(e2Root, e1Root);
 
     _numberOfComponents--;
 }
@@ -121,7 +132,9 @@ Element UnionFindDelete<Element>::find(const Element &e) {
 }
 
 template <class Element>
-void UnionFindDelete<Element>::getUnion(const Element &e, std::vector<Element> &container){
+void UnionFindDelete<Element>::getUnion(
+        const Element &e, std::vector<Element> &container)
+{
     Node& start = _elementToNode(e);
     _getElementDFSTree(start, container);
 }
@@ -276,7 +289,9 @@ Element UnionFindDelete<Element>::_removeInReducedTree(Node& node){
 }
 
 template <class Element>
-typename UnionFindDelete<Element>::Node& UnionFindDelete<Element>::_findLeaf(Node& node){
+typename UnionFindDelete<Element>::Node& UnionFindDelete<Element>::_findLeaf(
+        Node& node)
+{
     // Assumes that tree is full.
     if (node.isLeaf()) return node;
     if (node.isRoot()) return *(node.getPrevDFS());
@@ -303,8 +318,10 @@ void UnionFindDelete<Element>::_removeLeaf(Node& leaf){
                 parent->getParent()->getNonLeafChildren().erase(parent);
         }
     }
-    if (leaf.getParent() == nullptr) _numberOfComponents--;
-    else if (leaf.getParent()->isRoot() && leaf.getParent()->isLeaf()) leaf.getParent()->setRank(0);
+    if (leaf.getParent() == nullptr)
+        _numberOfComponents--;
+    else if (leaf.getParent()->isRoot() && leaf.getParent()->isLeaf())
+        leaf.getParent()->setRank(0);
 
     Element e = leaf.getElement();
     _nodes.erase(_indices.at(e));
@@ -439,7 +456,9 @@ void UnionFindDelete<Element>::_addNewRootLeaf(Node& root, Node& leaf){
 }
 
 template <class Element>
-void UnionFindDelete<Element>::_getElementDFSTree(Node& start, std::vector<Element> &container){
+void UnionFindDelete<Element>::_getElementDFSTree(
+        Node& start, std::vector<Element> &container)
+{
     Node* current = &start;
     do {
         container.push_back(current->getElement());
@@ -448,9 +467,11 @@ void UnionFindDelete<Element>::_getElementDFSTree(Node& start, std::vector<Eleme
 }
 
 template <class Element>
-void UnionFindDelete<Element>::_getNodeDFSTree(Node& start,
-                                               std::vector<Node*> &container,
-                                               Node *toIgnore){
+void UnionFindDelete<Element>::_getNodeDFSTree(
+        Node& start,
+        std::vector<Node*> &container,
+        Node *toIgnore)
+{
     Node* current = &start;
     do {
         if (current != toIgnore) container.push_back(current);
@@ -479,8 +500,9 @@ UnionFindDelete<Element>::_elementToNode(const Element &e){
 }
 
 template <class Element>
-UnionFindDelete<Element>::Node::Node(const Element& e) : _element(e), _rank(0),
-    _parent(nullptr), _rightSibling(this), _leftSibling(this), _rightMostChild(nullptr),
+UnionFindDelete<Element>::Node::Node(const Element& e) :
+    _element(e), _rank(0), _parent(nullptr), _rightSibling(this),
+    _leftSibling(this), _rightMostChild(nullptr),
     _prevDFS(this), _nextDFS(this)
 {}
 
@@ -589,7 +611,9 @@ inline bool UnionFindDelete<Element>::Node::isLeaf(){
 template <class Element>
 inline bool UnionFindDelete<Element>::Node::isInReduced(){
     return (isRoot() && _rank < 2) ||
-            (_parent != nullptr && _parent->isRoot() && _parent->getRank() == 1);
+            (_parent != nullptr
+            && _parent->isRoot()
+            && _parent->getRank() == 1);
 }
 
 template <class Element>
@@ -605,12 +629,14 @@ bool UnionFindDelete<Element>::Node::isInStrictSmallerThan(int size){
 }
 
 template <class Element>
-inline bool UnionFindDelete<Element>::Node::operator==(const Node &other) const{
+inline bool UnionFindDelete<Element>::Node::operator==(const Node &other) const
+{
     return _element == other.getElement();
 }
 
 template <class Element>
-inline bool UnionFindDelete<Element>::Node::operator!=(const Node &other) const{
+inline bool UnionFindDelete<Element>::Node::operator!=(const Node &other) const
+{
     return !(_element == other.getElement());
 }
 
@@ -636,21 +662,24 @@ UnionFindDelete<Element>::ComponentIterator::operator++(int)
 }
 
 template <class Element>
-inline const Element& UnionFindDelete<Element>::ComponentIterator::operator*() const
+inline const Element&
+UnionFindDelete<Element>::ComponentIterator::operator*() const
 {
     return _current->getElement();
 }
 
 template <class Element>
 inline bool
-UnionFindDelete<Element>::ComponentIterator::operator==(const ComponentIterator &other) const
+UnionFindDelete<Element>::ComponentIterator::operator==(
+        const ComponentIterator &other) const
 {
     return *_current == *(other._current);
 }
 
 template <class Element>
 inline bool
-UnionFindDelete<Element>::ComponentIterator::operator!=(const ComponentIterator &other) const
+UnionFindDelete<Element>::ComponentIterator::operator!=(
+        const ComponentIterator &other) const
 {
     return *_current != *(other._current);
 }

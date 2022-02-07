@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -75,7 +75,8 @@ public:
      * @return True if @p face is a face of @p cell, false otherwise.
      */
     static bool isFaceOf(const square &cell, const vertex &face) {
-        return cell[0] == face[0] || cell[1] == face[0] || cell[2] == face[0];
+        return cell[0] == face[0] || cell[1] == face[0] ||
+                cell[2] == face[0] || cell[3] == face[0];
     }
 
     /**
@@ -102,8 +103,10 @@ public:
      * @return True if @p face is a face of @p cell, false otherwise.
      */
     static bool isFaceOf(const cube &cell, const vertex &face) {
-        return cell[0] == face[0] || cell[1] == face[0] || cell[2] == face[0] ||
-                cell[3] == face[0];
+        return cell[0] == face[0] || cell[1] == face[0] ||
+                cell[2] == face[0] || cell[3] == face[0] ||
+                cell[4] == face[0] || cell[5] == face[0] ||
+                cell[6] == face[0] || cell[7] == face[0];
     }
 
     /**
@@ -130,18 +133,18 @@ public:
      * @return True if @p face is a face of @p cell, false otherwise.
      */
     static bool isFaceOf(const cube &cell, const square &face) {
-        return (cell[0] == face[0] && cell[1] == face[1] && cell[2] == face[2] &&
-                cell[3] == face[3]) ||
-                (cell[0] == face[0] && cell[1] == face[1] && cell[4] == face[2] &&
-                cell[5] == face[3]) ||
-                (cell[0] == face[0] && cell[2] == face[1] && cell[4] == face[2] &&
-                cell[6] == face[3]) ||
-                (cell[1] == face[0] && cell[3] == face[1] && cell[5] == face[2] &&
-                cell[7] == face[3]) ||
-                (cell[4] == face[0] && cell[5] == face[1] && cell[6] == face[2] &&
-                cell[7] == face[3]) ||
-                (cell[2] == face[0] && cell[3] == face[1] && cell[6] == face[2] &&
-                cell[7] == face[3]);
+        return (cell[0] == face[0] && cell[1] == face[1]
+                && cell[2] == face[2] && cell[3] == face[3]) ||
+                (cell[0] == face[0] && cell[1] == face[1]
+                && cell[4] == face[2] && cell[5] == face[3]) ||
+                (cell[0] == face[0] && cell[2] == face[1]
+                && cell[4] == face[2] && cell[6] == face[3]) ||
+                (cell[1] == face[0] && cell[3] == face[1]
+                && cell[5] == face[2] && cell[7] == face[3]) ||
+                (cell[4] == face[0] && cell[5] == face[1]
+                && cell[6] == face[2] && cell[7] == face[3]) ||
+                (cell[2] == face[0] && cell[3] == face[1]
+                && cell[6] == face[2] && cell[7] == face[3]);
     }
 
     /**

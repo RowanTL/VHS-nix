@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -31,6 +31,7 @@
 #include <unordered_map>
 
 #include "shape/ConnectedComponents.h"
+#include "shape/ShapeUtilities.h"
 #include "shape/VoxelSkeletonIterators.h"
 
 namespace shape_simplification{ namespace shape {
@@ -47,14 +48,8 @@ template <class AugmentedShape, class Voxel>
 class ShapeOverlay {
 public:
     using voxel_container = typename AugmentedShape::voxel_container;
-    using voxel_iterator = typename AugmentedShape::voxel_iterator;
     using collar_container = typename AugmentedShape::collar_container;
     using collar_iterator = typename AugmentedShape::collar_iterator;
-    using Level = typename AugmentedShape::Level;
-    static const Level CORE = AugmentedShape::CORE;
-    static const Level MAIN_SHAPE = AugmentedShape::MAIN_SHAPE;
-    static const Level NEIGHBORHOOD = AugmentedShape::NEIGHBORHOOD;
-    static const Level OUTSIDE = AugmentedShape::OUTSIDE;
     template <Level level>
     using neighbor_iterator =
         typename AugmentedShape::template neighbor_iterator<level>;
@@ -453,7 +448,8 @@ private:
      * @param voxels The set of voxels which are added.
      * @param res Reference to store the new value.
      */
-    void _updateNumberOfComponentsAfterAdding(voxel_container &voxels, unsigned int &res);
+    void _updateNumberOfComponentsAfterAdding(
+            voxel_container &voxels, unsigned int &res);
     /**
      * @brief Computes the number of connected components to save given voxels.
      * @param voxels Voxels to add and save.
@@ -471,7 +467,8 @@ private:
      * @param voxels The set of voxels which are removed.
      * @param res Reference to store the new value.
      */
-    void _updateNumberOfComponentsAfterRemoving(voxel_container &voxels, unsigned int &res);
+    void _updateNumberOfComponentsAfterRemoving(
+            voxel_container &voxels, unsigned int &res);
     /**
      * @brief Computes the number of connected components to save given voxels.
      * @param voxels Voxels to remove and save.
@@ -480,7 +477,8 @@ private:
 
     /**
      * @brief Computes the number of loops
-     * after calling \ref addVoxelsInMainShape or \ref removeVoxelsFromMainShape.
+     * after calling \ref addVoxelsInMainShape or
+     * \ref removeVoxelsFromMainShape.
      * @pre Assumes that all the other _update functions
      * were already called.
      */

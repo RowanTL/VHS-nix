@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -29,6 +29,7 @@
 #include <cmath>
 
 #include "shape/InvertedRestrictedShapeCopy.h"
+#include "shape/ShapeUtilities.h"
 #include "util/Point.h"
 
 namespace shape_simplification{ namespace shape {
@@ -37,22 +38,22 @@ using util::Point;
 
 template <class Shape, class Voxel>
 /**
- * class ClosedRestrictedShape
+ * class ClosedInvertedRestrictedShape
  * @brief Shape class which restrict a given shape instanciation to a smaller
  * cube of coordinates and adds a border to the cube.
- * It inherits from \ref RestrictedShapeCopy.
+ * It inherits from \ref InvertedRestrictedShapeCopy.
+ * /!\ Not all outside voxels are inverted. Only outside voxels directly
+ * adjacent to the neighborhood are inverted into core voxels.
  * @tparam Shape Shape class to be restricted.
  * @tparam Voxel Voxel class used by the shape.
  **/
-class ClosedInvertedRestrictedShapeCopy : public InvertedRestrictedShapeCopy<Shape,Voxel> {
+class ClosedInvertedRestrictedShapeCopy :
+        public InvertedRestrictedShapeCopy<Shape,Voxel> {
 public:
-    using Level = typename InvertedRestrictedShapeCopy<Shape,Voxel>::Level;
-    using InvertedRestrictedShapeCopy<Shape,Voxel>::CORE;
-    using InvertedRestrictedShapeCopy<Shape,Voxel>::MAIN_SHAPE;
-    using InvertedRestrictedShapeCopy<Shape,Voxel>::NEIGHBORHOOD;
-    using InvertedRestrictedShapeCopy<Shape,Voxel>::OUTSIDE;
+    template <Level level = NEIGHBORHOOD>
     using voxel_iterator =
-        typename InvertedRestrictedShapeCopy<Shape,Voxel>::voxel_iterator;
+        typename InvertedRestrictedShapeCopy<Shape,Voxel>::template
+            voxel_iterator<level>;
     template <Level level>
     using neighbor_iterator =
         typename BaseShape<Voxel>::template neighbor_iterator<level>;
@@ -68,7 +69,8 @@ public:
      * @param lowerBound Left bottom corner of the restricted area.
      * @param upperBound Right top corner of the restricted area.
      */
-    ClosedInvertedRestrictedShapeCopy(const Shape &shape, Point &lowerBound, Point &upperBound);
+    ClosedInvertedRestrictedShapeCopy(
+            const Shape &shape, Point &lowerBound, Point &upperBound);
 
 private:
     /**

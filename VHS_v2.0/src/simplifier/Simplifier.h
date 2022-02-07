@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -35,13 +35,11 @@
 #include "shape/ClosedRestrictedShapeCopy.h"
 #include "shape/ClosedInvertedRestrictedShapeCopy.h"
 #include "shape/Voxel.h"
-#include "simplifier/AdditiveH0CandidateGenerator.h"
-#include "simplifier/AdditiveH1CandidateGenerator.h"
-#include "simplifier/AdditiveH2CandidateGenerator.h"
-#include "simplifier/SubstractiveH0CandidateGenerator.h"
-#include "simplifier/SubstractiveH1CandidateGenerator.h"
-#include "simplifier/SubstractiveH2CandidateGenerator.h"
+#include "shape/ShapeUtilities.h"
+#include "simplifier/AdditiveCandidateGenerator.h"
+#include "simplifier/SubstractiveCandidateGenerator.h"
 #include "simplifier/CandidateValidator.h"
+#include "simplifier/DistancePseudoVoidsCreator.h"
 #include "util/FileIO.h"
 #include "util/ProcessedImageStack.h"
 #include "util/RawImageStack.h"
@@ -49,6 +47,7 @@
 namespace shape_simplification{ namespace simplifier {
 
 using shape_simplification::shape::Voxel;
+using shape_simplification::shape::NeighborsInIterator;
 using shape_simplification::shape::AddableShape;
 using shape_simplification::shape::EditableShape;
 using shape_simplification::shape::AugmentedShape;
@@ -61,7 +60,7 @@ using shape_simplification::util::RawImageStack;
 
 /**
  * class Simplifier
- * @brief
+ * @brief Interface to simplify a shape from a given stack of PNG images.
  **/
 class Simplifier {
 public:
@@ -73,14 +72,18 @@ public:
     using ClInvRestrShape = ClosedInvertedRestrictedShapeCopy<AugShape,Voxel>;
 
     using voxel_container =
-        typename BaseCandidateGenerator<AugShape,Voxel,0>::voxel_container;
+        typename AdditiveCandidateGenerator<AugShape,Voxel>::voxel_container;
     using candidate_container =
-        typename BaseCandidateGenerator<AugShape,Voxel,0>::candidate_container;
+        typename AdditiveCandidateGenerator<AugShape,Voxel>::candidate_container;
     using valid_candidate_container =
         CandidateValidator<AugShape,Voxel>::valid_candidate_container;
 
     using lower_point_container = std::unordered_set<Point>;
 
+    /**
+     * @brief Structure to store the different parameters and options
+     * to use to load the image stack.
+     */
     struct ImageData{
         /**
          * @brief Input base name for input images.
@@ -129,7 +132,7 @@ public:
      * @param data Structure containing all necessary
      * information to load the image stack.
      */
-    void loadPreprocessedImage(ImageData &data);
+    void loadPreprocessedImage(ImageData &data, bool pseudovoids = false);
     /**
      * @brief Loads image stack from given data with
      * downsampling and possibly noise addition.
@@ -154,7 +157,8 @@ public:
      * @param noover True if the boxes should not overlap, false otherwise.
      * See README file for more detailed explanation.
      */
-    void simplify(unsigned int boxWidth, int ccSize = -1, bool noover = false);
+    void simplify(
+            unsigned int boxWidth, int ccSize = -1, bool noover = false);
     /**
      * @brief Simplifies the latest loaded shape,
      * but searches for removals first (inverse of \ref simplify).
@@ -164,7 +168,8 @@ public:
      * @param noover True if the boxes should not overlap, false otherwise.
      * See README file for more detailed explanation.
      */
-    void simplifyWithSubFirst(unsigned int boxWidth, int ccSize = -1, bool noover = false);
+    void simplifyWithSubFirst(
+            unsigned int boxWidth, int ccSize = -1, bool noover = false);
     /**
      * @brief Simplifies the latest loaded shape,
      * but uses only additions.
@@ -174,7 +179,8 @@ public:
      * @param noover True if the boxes should not overlap, false otherwise.
      * See README file for more detailed explanation.
      */
-    void simplifyOnlyAdditively(unsigned int boxWidth, bool noover = false);
+    void simplifyOnlyAdditively(
+            unsigned int boxWidth, bool noover = false);
     /**
      * @brief Simplifies the latest loaded shape,
      * but uses only removals.
@@ -184,14 +190,16 @@ public:
      * @param noover True if the boxes should not overlap, false otherwise.
      * See README file for more detailed explanation.
      */
-    void simplifyOnlySubstractively(unsigned int boxWidth, int ccSize = -1, bool noover = false);
+    void simplifyOnlySubstractively(
+            unsigned int boxWidth, int ccSize = -1, bool noover = false);
 
     /**
      * @brief Prints basic data of the current state of the shape:
      *
-     * dimensions, number of voxels in the core, number of non-core voxels in the shape,
-     * total number of voxels in the shape, number of voxels in the neighborhood,
-     * Euler characteristic, number of components, number of loops, number of voids.
+     * dimensions, number of voxels in the core, number of non-core voxels
+     * in the shape, total number of voxels in the shape, number of voxels
+     * in the neighborhood, Euler characteristic, number of components,
+     * number of loops, number of voids.
      */
     void printShapeData();
 
@@ -208,21 +216,13 @@ private:
     clock_t _time;                          ///< Stores time for timing.
     bool _silent;                           ///< True if no output in the terminal.
 
-    bool _simplifyH0WithAdditions(
-            AdditiveH0CandidateGenerator<AugShape,Voxel>& gen,
+    bool _simplifyWithAdditions(
+            AdditiveCandidateGenerator<AugShape,Voxel>& gen,
             CandidateValidator<AugShape,Voxel>& val,
             lower_point_container& lowerPoints);
-    bool _simplifyH1WithAdditions(
-            AdditiveH1CandidateGenerator<AugShape,Voxel>& gen,
+    bool _simplifyWithSubstractions(
+            SubstractiveCandidateGenerator<AugShape,Voxel>& gen,
             CandidateValidator<AugShape,Voxel>& val,
-            lower_point_container& lowerPoints);
-    bool _simplifyH1WithSubstractions(
-            SubstractiveH1CandidateGenerator<AugShape,Voxel>& gen,
-            CandidateValidator<AugShape,Voxel>& val,
-            lower_point_container& lowerPoints);
-    bool _simplifyH2WithSubstractions(
-            SubstractiveH2CandidateGenerator<AugShape,Voxel>& gen,
-            CandidateValidator<AugShape, Voxel>& val,
             lower_point_container& lowerPoints);
 
     bool _applyAdditiveSimplification(const valid_candidate_container& voxels);
@@ -232,12 +232,16 @@ private:
     bool _applyAdditiveSimplification(const candidate_container& voxelSets,
                                       lower_point_container& currentLP);
 
-    bool _applySubstractiveSimplification(const valid_candidate_container& voxels);
-    bool _applySubstractiveSimplification(const candidate_container& voxelSets);
-    bool _applySubstractiveSimplification(const valid_candidate_container& voxels,
-                                          lower_point_container& currentLP);
-    bool _applySubstractiveSimplification(const candidate_container& voxelSets,
-                                          lower_point_container& currentLP);
+    bool _applySubstractiveSimplification(
+            const valid_candidate_container& voxels);
+    bool _applySubstractiveSimplification(
+            const candidate_container& voxelSets);
+    bool _applySubstractiveSimplification(
+            const valid_candidate_container& voxels,
+            lower_point_container& currentLP);
+    bool _applySubstractiveSimplification(
+            const candidate_container& voxelSets,
+            lower_point_container& currentLP);
 
     void _computeInitialLowerPoints(lower_point_container& lowerPoints);
     void _getCorrespondingLowerPoints(Voxel v, lower_point_container& points);

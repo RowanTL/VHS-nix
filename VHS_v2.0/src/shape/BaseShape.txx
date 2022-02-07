@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -31,13 +31,13 @@ template <class Voxel>
 BaseShape<Voxel>::BaseShape() : _shapeDimensions{0, 0, 0} {}
 
 template <class Voxel>
-BaseShape<Voxel>::BaseShape(std::vector<Voxel> &voxels,
-                            std::vector<Level> &minLevels)
+BaseShape<Voxel>::BaseShape(std::vector<Voxel> &voxels)
     : _shapeDimensions{0, 0, 0}
 {
-    for (typename std::vector<Voxel>::size_type i = 0; i < voxels.size(); ++i) {
-        Level l = minLevels.at(i);
+    for (typename std::vector<Voxel>::size_type i = 0; i < voxels.size(); ++i)
+    {
         Voxel v = voxels.at(i);
+        Level l = v.getLevel();
         if (l == CORE) {
             _voxels.at(0).insert(v);
             _voxels.at(1).insert(v);
@@ -68,63 +68,71 @@ constexpr bool BaseShape<Voxel>::isRemovable() {
 }
 
 template <class Voxel>
-template <typename BaseShape<Voxel>::Level minLevel>
+template <Level minLevel>
 void BaseShape<Voxel>::addVoxel(Voxel v) {
     static_assert(minLevel == -1, "Insertion of voxel not enabled.");
 }
 
 template <class Voxel>
-template <typename BaseShape<Voxel>::Level maxLevel>
+template <Level maxLevel>
 void BaseShape<Voxel>::removeVoxel(Voxel v) {
     static_assert(maxLevel == -1, "Removal of voxel not enabled.");
 }
 
 template <class Voxel>
-template <typename BaseShape<Voxel>::Level level>
-bool BaseShape<Voxel>::contains(Voxel v) const {
+template <Level level>
+bool BaseShape<Voxel>::contains(int x, int y, int z) const {
+    Voxel v(x, y, z);
+
     if constexpr (level == OUTSIDE){
-        return !contains<NEIGHBORHOOD>(v);
-    } else {
-        return _voxels.at(level).find(v) != _voxels.at(level).end();
+        return !contains<NEIGHBORHOOD>(x, y, z);
+    } else if constexpr (level == EX_MAIN_SHAPE) {
+        return contains<MAIN_SHAPE>(x, y, z)
+                && !contains<CORE>(x, y, z);
+    } else if constexpr (level == EX_NEIGHBORHOOD) {
+        return contains<NEIGHBORHOOD>(x, y, z)
+                && !contains<MAIN_SHAPE>(x, y, z);
+    } else if constexpr (level == CORE) {
+        return _voxels.at(0).find(v) != _voxels.at(0).end();
+    } else if constexpr (level == MAIN_SHAPE) {
+        return _voxels.at(1).find(v) != _voxels.at(1).end();
+    } else if constexpr (level == NEIGHBORHOOD) {
+        return _voxels.at(2).find(v) != _voxels.at(2).end();
     }
 }
 
 template <class Voxel>
-bool BaseShape<Voxel>::containsOnlyInNeighborhood(Voxel v) const{
-    if (_voxels.at(NEIGHBORHOOD).find(v) == _voxels.at(NEIGHBORHOOD).end())
-        return false;
-    return _voxels.at(MAIN_SHAPE).find(v) == _voxels.at(MAIN_SHAPE).end();
-}
-
-template <class Voxel>
-template <typename BaseShape<Voxel>::Level level>
-typename BaseShape<Voxel>::voxel_iterator BaseShape<Voxel>::begin() const {
+template <Level level>
+typename BaseShape<Voxel>::template voxel_iterator<level>
+BaseShape<Voxel>::begin() const {
     static_assert(level != OUTSIDE,
             "It is not possible to iterate voxels not contained in Shape.");
     return _voxels.at(level).begin();
 }
 
 template <class Voxel>
-template <typename BaseShape<Voxel>::Level level>
-typename BaseShape<Voxel>::voxel_iterator BaseShape<Voxel>::end() const {
+template <Level level>
+typename BaseShape<Voxel>::template voxel_iterator<level>
+BaseShape<Voxel>::end() const {
     static_assert(level != OUTSIDE,
             "It is not possible to iterate voxels not contained in Shape.");
     return _voxels.at(level).end();
 }
 
 template <class Voxel>
-typename BaseShape<Voxel>::Level BaseShape<Voxel>::getMinLevel(Voxel v) {
-    if (contains<CORE>(v))
+Level BaseShape<Voxel>::getMinLevel(int x, int y, int z) {
+    if (contains<CORE>(x, y, z))
         return CORE;
-    if (contains<MAIN_SHAPE>(v))
+    if (contains<MAIN_SHAPE>(x, y, z))
         return MAIN_SHAPE;
-    if (contains<NEIGHBORHOOD>(v))
+    if (contains<NEIGHBORHOOD>(x, y, z))
         return NEIGHBORHOOD;
     return OUTSIDE;
 }
 
 template <class Voxel>
-const std::array<unsigned int, 3>& BaseShape<Voxel>::getShapeDimensions() const {
+const std::array<unsigned int, 3>& BaseShape<Voxel>::getShapeDimensions() const
+{
     return _shapeDimensions;
 }
 
@@ -139,12 +147,18 @@ void BaseShape<Voxel>::clear(){
 }
 
 template <class Voxel>
+inline constexpr unsigned int BaseShape<Voxel>::getNumberOfLevels(){
+    return 3;
+}
+
+template <class Voxel>
 std::array<unsigned int, 3>& BaseShape<Voxel>::_getShapeDimensions() {
     return _shapeDimensions;
 }
 
 template <class Voxel>
-std::array<typename BaseShape<Voxel>::voxel_container, 3>& BaseShape<Voxel>::_getVoxels(){
+std::array<typename BaseShape<Voxel>::voxel_container, 3>&
+BaseShape<Voxel>::_getVoxels(){
     return _voxels;
 }
 

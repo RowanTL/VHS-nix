@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -203,8 +203,7 @@ PrimalSkeleton<Shape, Voxel, minDim, maxDim>::getCorrespondingVoxels(
 
 template <class Shape, class Voxel,
           unsigned int minDim, unsigned int maxDim>
-template <unsigned int dim,
-          typename PrimalSkeleton<Shape, Voxel, minDim, maxDim>::Level level>
+template <unsigned int dim, Level level>
 void
 PrimalSkeleton<Shape, Voxel, minDim, maxDim>::getCorrespondingVoxelsIn(
         Cell<dim>& cell,
@@ -213,10 +212,13 @@ PrimalSkeleton<Shape, Voxel, minDim, maxDim>::getCorrespondingVoxelsIn(
     constexpr unsigned int size = 1 << (3 - dim);
     Shape& shape = BSkeleton::_getShape();
     std::array<Voxel, size> allVoxels;
+    container.clear();
     getCorrespondingVoxels(cell, allVoxels);
 
     for (unsigned int i = 0; i < size; ++i) {
-        if (shape.template contains<level>(allVoxels[i]))
+        if (shape.template contains<level>(allVoxels[i][0],
+                                           allVoxels[i][1],
+                                           allVoxels[i][2]))
             container.push_back(allVoxels[i]);
     }
 }

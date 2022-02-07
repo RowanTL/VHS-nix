@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -72,4 +72,10 @@ void BoundaryMatrix::addColTo(index toAddIndex, index targetIndex) {
 void BoundaryMatrix::finalize(index colIndex) {
     _boundaryMatrix.finalize(colIndex);
     _inverseBoundaryMatrix.finalize(colIndex);
+}
+
+//invalidates inverse matrix
+void BoundaryMatrix::clearColumn(index colIndex) {
+    _boundaryMatrix.clear(colIndex);
+    _inverseBoundaryMatrix.clear(colIndex);
 }

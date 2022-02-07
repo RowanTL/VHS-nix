@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -23,690 +23,599 @@
  * Test file for the Cell classes.
  **/
 
-#include <algorithm>
 #include <gtest/gtest.h>
 #include <random>
+#include <vector>
+#include <unordered_set>
 
-#include "shape/Cell.h"
 #include "util/Point.h"
+#include "shape/Cell.h"
+#include "shape/CellAdjacencies.h"
+#include "test_examples.h"
 
 using shape_simplification::shape::Cell;
-using shape_simplification::shape::Point;
+using shape_simplification::shape::CellContainer;
+using shape_simplification::shape::CellAdjacencies;
+using shape_simplification::util::PointStrictLessThanComparator;
 
-void verifyCellVertexAgreementForVertices(
-        std::mt19937 &randomGenerator, std::vector<Point> &verticesPV,
-        std::vector<Cell<0>::vertex> &verticesVV, std::array<Point, 1> &verticesPA,
-        std::array<Cell<0>::vertex, 1> &verticesVA);
-void verifyCellVertexAgreementForEdges(
-        std::mt19937 &randomGenerator, std::vector<Point> &verticesPV,
-        std::vector<Cell<1>::vertex> &verticesVV, std::array<Point, 2> &verticesPA,
-        std::array<Cell<1>::vertex, 2> &verticesVA);
-void verifyCellVertexAgreementForSquares(
-        std::mt19937 &randomGenerator, std::vector<Point> &verticesPV,
-        std::vector<Cell<2>::vertex> &verticesVV, std::array<Point, 4> &verticesPA,
-        std::array<Cell<2>::vertex, 4> &verticesVA);
-void verifyCellVertexAgreementForCubes(
-        std::mt19937 &randomGenerator, std::vector<Point> &verticesPV,
-        std::vector<Cell<3>::vertex> &verticesVV, std::array<Point, 8> &verticesPA,
-        std::array<Cell<3>::vertex, 8> &verticesVA);
-void verifyCellEqualityOperatorForVertices(std::mt19937 &randomGenerator,
-                                           std::vector<Point> &vertices);
-void verifyCellEqualityOperatorForEdges(std::mt19937 &randomGenerator,
-                                        std::vector<Point> &vertices);
-void verifyCellEqualityOperatorForSquares(std::mt19937 &randomGenerator,
-                                          std::vector<Point> &vertices);
-void verifyCellEqualityOperatorForCubes(std::mt19937 &randomGenerator,
-                                        std::vector<Point> &vertices);
-void verifyCellIsFaceCoFaceMethodsForVertices();
-void verifyCellIsFaceCoFaceMethodsForEdges();
-void verifyCellIsFaceCoFaceMethodsForSquares();
-void verifyCellIsFaceCoFaceMethodsForCubes();
-void verifyCellGetBoundaryMethodForEdges();
-void verifyCellGetBoundaryMethodForSquares();
-void verifyCellGetBoundaryMethodForCubes();
+std::string printVertex(PackedData v){
+    int x = static_cast<int>(v.rawData() >> (17U * 0U)
+                             & static_cast<uint64_t>(65536 - 1));
+    int y = static_cast<int>(v.rawData() >> (17U * 1U)
+                             & static_cast<uint64_t>(65536 - 1));
+    int z = static_cast<int>(v.rawData() >> (17U * 2U)
+                             & static_cast<uint64_t>(65536 - 1));
 
-TEST(CellTest, VertexAgreement) {
-    std::mt19937 randomGenerator(0);
-    std::vector<Point> vertexVertexPV(1);
-    std::vector<Cell<0>::vertex> vertexVertexVV(1);
-    std::array<Point, 1> vertexVertexPA;
-    std::array<Cell<0>::vertex, 1> vertexVertexVA;
-    std::vector<Point> edgeVerticesPV(2);
-    std::vector<Cell<1>::vertex> edgeVerticesVV(2);
-    std::array<Point, 2> edgeVerticesPA;
-    std::array<Cell<1>::vertex, 2> edgeVerticesVA;
-    std::vector<Point> squareVerticesPV(4);
-    std::vector<Cell<2>::vertex> squareVerticesVV(4);
-    std::array<Point, 4> squareVerticesPA;
-    std::array<Cell<2>::vertex, 4> squareVerticesVA;
-    std::vector<Point> cubeVerticesPV(8);
-    std::vector<Cell<3>::vertex> cubeVerticesVV(8);
-    std::array<Point, 8> cubeVerticesPA;
-    std::array<Cell<3>::vertex, 8> cubeVerticesVA;
-
-    for (int repetition = 0; repetition < 100000; repetition++) {
-        verifyCellVertexAgreementForVertices(randomGenerator, vertexVertexPV,
-                                             vertexVertexVV, vertexVertexPA,
-                                             vertexVertexVA);
-        verifyCellVertexAgreementForEdges(randomGenerator, edgeVerticesPV,
-                                          edgeVerticesVV, edgeVerticesPA,
-                                          edgeVerticesVA);
-        verifyCellVertexAgreementForSquares(randomGenerator, squareVerticesPV,
-                                            squareVerticesVV, squareVerticesPA,
-                                            squareVerticesVA);
-        verifyCellVertexAgreementForCubes(randomGenerator, cubeVerticesPV,
-                                          cubeVerticesVV, cubeVerticesPA,
-                                          cubeVerticesVA);
-    }
+    return "(" + std::to_string(x) + ", "
+               + std::to_string(y) + ", "
+               + std::to_string(z) + ")";
 }
 
-void verifyCellVertexAgreementForVertices(
-        std::mt19937 &randomGenerator, std::vector<Point> &verticesPV,
-        std::vector<Cell<0>::vertex> &verticesVV, std::array<Point, 1> &verticesPA,
-        std::array<Cell<0>::vertex, 1> &verticesVA) {
+template <unsigned int dim>
+void verifyCellContent(std::mt19937 &randomGenerator, std::string name)
+{
+    using vertex = typename Cell<dim>::vertex;
+
     std::uniform_int_distribution<int> uniform(0, 65535);
-    Point p;
-    for (unsigned int coord = 0; coord < 3; coord++)
-        p[coord] = uniform(randomGenerator);
-    Cell<0>::vertex vertex = Cell<0>::pointToVertex(p);
+    const unsigned int size = 1 << dim;
 
-    verticesPV.at(0) = p;
-    verticesVV.at(0) = vertex;
-    verticesPA[0] = p;
-    verticesVA[0] = vertex;
+    std::vector<Point> verticesVP(size);
+    std::vector<vertex> verticesVV(size);
+    std::array<Point, size> verticesAP;
+    std::array<vertex, size> verticesAV;
 
-    Cell<0> cellPV(verticesPV, 0);
-    Cell<0> cellVV(verticesVV, 1);
-    Cell<0> cellPA(verticesPA, 2);
-    Cell<0> cellVA(verticesVA, 0);
-
-    ASSERT_EQ(0, cellPV.getDim());
-    ASSERT_EQ(0, cellPV.getTimestamp());
-    ASSERT_EQ(0, cellVV.getDim());
-    ASSERT_EQ(1, cellVV.getTimestamp());
-    ASSERT_EQ(0, cellPA.getDim());
-    ASSERT_EQ(2, cellPA.getTimestamp());
-    ASSERT_EQ(0, cellVA.getDim());
-    ASSERT_EQ(0, cellVA.getTimestamp());
-
-    ASSERT_EQ(vertex, cellPV[0]);
-    ASSERT_EQ(vertex, cellVV[0]);
-    ASSERT_EQ(vertex, cellPA[0]);
-    ASSERT_EQ(vertex, cellVA[0]);
-}
-
-void verifyCellVertexAgreementForEdges(
-        std::mt19937 &randomGenerator, std::vector<Point> &verticesPV,
-        std::vector<Cell<1>::vertex> &verticesVV, std::array<Point, 2> &verticesPA,
-        std::array<Cell<1>::vertex, 2> &verticesVA) {
-    std::uniform_int_distribution<int> uniform(0, 65535);
-    const unsigned int size = 2;
-    Point points[size];
     for (unsigned int coord = 0; coord < 3; coord++) {
         for (unsigned int i = 0; i < size; ++i) {
-            points[i][coord] = uniform(randomGenerator);
+            verticesAP[i][coord] = uniform(randomGenerator);
         }
     }
-    Cell<1>::vertex vertices[size];
-    for (unsigned int i = 0; i < size; ++i) {
-        vertices[i] = Cell<1>::pointToVertex(points[i]);
-    }
-    std::sort(vertices, vertices + size);
+    std::sort(verticesAP.begin(), verticesAP.end(),
+              PointStrictLessThanComparator());
 
     for (unsigned int i = 0; i < size; ++i) {
-        verticesPV.at(i) = points[i];
-        verticesVV.at(i) = vertices[i];
-        verticesPA[i] = points[i];
-        verticesVA[i] = vertices[i];
-    }
-
-    Cell<1> cellPV(verticesPV, 0);
-    Cell<1> cellVV(verticesVV, 1);
-    Cell<1> cellPA(verticesPA, 2);
-    Cell<1> cellVA(verticesVA, 0);
-
-    ASSERT_EQ(1, cellPV.getDim());
-    ASSERT_EQ(0, cellPV.getTimestamp());
-    ASSERT_EQ(1, cellVV.getDim());
-    ASSERT_EQ(1, cellVV.getTimestamp());
-    ASSERT_EQ(1, cellPA.getDim());
-    ASSERT_EQ(2, cellPA.getTimestamp());
-    ASSERT_EQ(1, cellVA.getDim());
-    ASSERT_EQ(0, cellVA.getTimestamp());
-
-    for (unsigned int i = 0; i < size; ++i) {
-        ASSERT_EQ(vertices[i], cellPV[i]);
-        ASSERT_EQ(vertices[i], cellVV[i]);
-        ASSERT_EQ(vertices[i], cellPA[i]);
-        ASSERT_EQ(vertices[i], cellVA[i]);
-    }
-}
-
-void verifyCellVertexAgreementForSquares(
-        std::mt19937 &randomGenerator, std::vector<Point> &verticesPV,
-        std::vector<Cell<2>::vertex> &verticesVV, std::array<Point, 4> &verticesPA,
-        std::array<Cell<2>::vertex, 4> &verticesVA) {
-    std::uniform_int_distribution<int> uniform(0, 65535);
-    const unsigned int size = 4;
-    Point points[size];
-    for (unsigned int coord = 0; coord < 3; coord++) {
-        for (unsigned int i = 0; i < size; ++i) {
-            points[i][coord] = uniform(randomGenerator);
-        }
-    }
-    Cell<2>::vertex vertices[size];
-    for (unsigned int i = 0; i < size; ++i) {
-        vertices[i] = Cell<2>::pointToVertex(points[i]);
-    }
-    std::sort(vertices, vertices + size);
-
-    for (unsigned int i = 0; i < size; ++i) {
-        verticesPV.at(i) = points[i];
-        verticesVV.at(i) = vertices[i];
-        verticesPA[i] = points[i];
-        verticesVA[i] = vertices[i];
-    }
-
-    Cell<2> cellPV(verticesPV, 0);
-    Cell<2> cellVV(verticesVV, 1);
-    Cell<2> cellPA(verticesPA, 2);
-    Cell<2> cellVA(verticesVA, 0);
-
-    ASSERT_EQ(2, cellPV.getDim());
-    ASSERT_EQ(0, cellPV.getTimestamp());
-    ASSERT_EQ(2, cellVV.getDim());
-    ASSERT_EQ(1, cellVV.getTimestamp());
-    ASSERT_EQ(2, cellPA.getDim());
-    ASSERT_EQ(2, cellPA.getTimestamp());
-    ASSERT_EQ(2, cellVA.getDim());
-    ASSERT_EQ(0, cellVA.getTimestamp());
-
-    for (unsigned int i = 0; i < size; ++i) {
-        ASSERT_EQ(vertices[i], cellPV[i]);
-        ASSERT_EQ(vertices[i], cellVV[i]);
-        ASSERT_EQ(vertices[i], cellPA[i]);
-        ASSERT_EQ(vertices[i], cellVA[i]);
-    }
-}
-
-void verifyCellVertexAgreementForCubes(
-        std::mt19937 &randomGenerator, std::vector<Point> &verticesPV,
-        std::vector<Cell<3>::vertex> &verticesVV, std::array<Point, 8> &verticesPA,
-        std::array<Cell<3>::vertex, 8> &verticesVA) {
-    std::uniform_int_distribution<int> uniform(0, 65535);
-    const unsigned int size = 8;
-    Point points[size];
-    for (unsigned int coord = 0; coord < 3; coord++) {
-        for (unsigned int i = 0; i < size; ++i) {
-            points[i][coord] = uniform(randomGenerator);
-        }
-    }
-    Cell<3>::vertex vertices[size];
-    for (unsigned int i = 0; i < size; ++i) {
-        vertices[i] = Cell<3>::pointToVertex(points[i]);
-    }
-    std::sort(vertices, vertices + size);
-
-    for (unsigned int i = 0; i < size; ++i) {
-        verticesPV.at(i) = points[i];
-        verticesVV.at(i) = vertices[i];
-        verticesPA[i] = points[i];
-        verticesVA[i] = vertices[i];
-    }
-
-    Cell<3> cellPV(verticesPV, 0);
-    Cell<3> cellVV(verticesVV, 1);
-    Cell<3> cellPA(verticesPA, 2);
-    Cell<3> cellVA(verticesVA, 0);
-
-    ASSERT_EQ(3, cellPV.getDim());
-    ASSERT_EQ(0, cellPV.getTimestamp());
-    ASSERT_EQ(3, cellVV.getDim());
-    ASSERT_EQ(1, cellVV.getTimestamp());
-    ASSERT_EQ(3, cellPA.getDim());
-    ASSERT_EQ(2, cellPA.getTimestamp());
-    ASSERT_EQ(3, cellVA.getDim());
-    ASSERT_EQ(0, cellVA.getTimestamp());
-
-    for (unsigned int i = 0; i < size; ++i) {
-        ASSERT_EQ(vertices[i], cellPV[i]);
-        ASSERT_EQ(vertices[i], cellVV[i]);
-        ASSERT_EQ(vertices[i], cellPA[i]);
-        ASSERT_EQ(vertices[i], cellVA[i]);
-    }
-}
-
-TEST(CellTest, VertexPointConvertion) {
-    std::mt19937 randomGenerator(0);
-    std::uniform_int_distribution<int> uniform(0, 65535);
-    Point p;
-    Cell<0>::vertex v;
-
-    for (int repetition = 0; repetition < 100000; repetition++) {
-        for (unsigned int coord = 0; coord < 3; coord++)
-            p[coord] = uniform(randomGenerator);
-        v = Cell<0>::pointToVertex(p);
-
-        Point conv = Cell<0>::vertexToPoint(v);
-        ASSERT_EQ(p[0], conv[0]);
-        ASSERT_EQ(p[1], conv[1]);
-        ASSERT_EQ(p[2], conv[2]);
-    }
-}
-
-TEST(CellTest, EqualityOperator) {
-    std::mt19937 randomGenerator(0);
-    std::vector<Point> vertexVertex(1);
-    std::vector<Point> edgeVertices(2);
-    std::vector<Point> squareVertices(4);
-    std::vector<Point> cubeVertices(8);
-
-    for (int repetition = 0; repetition < 100000; repetition++) {
-        verifyCellEqualityOperatorForVertices(randomGenerator, vertexVertex);
-        verifyCellEqualityOperatorForEdges(randomGenerator, edgeVertices);
-        verifyCellEqualityOperatorForSquares(randomGenerator, squareVertices);
-        verifyCellEqualityOperatorForCubes(randomGenerator, cubeVertices);
-    }
-}
-
-void verifyCellEqualityOperatorForVertices(std::mt19937 &randomGenerator,
-                                           std::vector<Point> &vertices) {
-    std::uniform_int_distribution<int> uniform(0, 65535);
-    Point p1, p2;
-    for (unsigned int coord = 0; coord < 3; coord++)
-        p1[coord] = uniform(randomGenerator);
-    vertices.at(0) = p1;
-
-    Cell<0> cell1(vertices, 0);
-    Cell<0> cell2(vertices, 2);
-
-    while (p1[0] == p2[0] && p1[1] == p2[1] && p1[2] == p2[2])
-        for (unsigned int coord = 0; coord < 3; coord++)
-            p2[coord] = uniform(randomGenerator);
-    vertices.at(0) = p2;
-    Cell<0> cell3(vertices, 1);
-
-    ASSERT_TRUE(cell1 == cell2);
-    ASSERT_FALSE(cell1 == cell3);
-}
-
-void verifyCellEqualityOperatorForEdges(std::mt19937 &randomGenerator,
-                                        std::vector<Point> &vertices) {
-    std::uniform_int_distribution<int> uniform(0, 65535);
-    const unsigned int size = 2;
-    Point points[size];
-    for (unsigned int coord = 0; coord < 3; coord++) {
-        for (unsigned int i = 0; i < size; ++i) {
-            points[i][coord] = uniform(randomGenerator);
-        }
+        verticesAV[i] = Cell<dim>::pointToVertex(verticesAP[i]);
     }
 
     for (unsigned int i = 0; i < size; ++i) {
-        vertices.at(i) = points[i];
+        verticesVP.at(i) = verticesAP[i];
+        verticesVV.at(i) = verticesAV[i];
     }
-    Cell<1> cell1(vertices, 0);
-    Cell<1> cell2(vertices, 2);
 
-    Point p = points[0];
-    while (p[0] == points[0][0] && p[1] == points[0][1] && p[2] == points[0][2])
-        for (unsigned int coord = 0; coord < 3; coord++)
-            p[coord] = uniform(randomGenerator);
-    vertices.at(0) = p;
-    Cell<1> cell3(vertices, 1);
+    Cell<dim> cellVP(verticesVP, 0);
+    Cell<dim> cellVV(verticesVV, 1);
+    Cell<dim> cellAP(verticesAP, 2);
+    Cell<dim> cellAV(verticesAV, 0);
 
-    ASSERT_TRUE(cell1 == cell2);
-    ASSERT_FALSE(cell1 == cell3);
-}
-
-void verifyCellEqualityOperatorForSquares(std::mt19937 &randomGenerator,
-                                          std::vector<Point> &vertices) {
-    std::uniform_int_distribution<int> uniform(0, 65535);
-    const unsigned int size = 4;
-    Point points[size];
-    for (unsigned int coord = 0; coord < 3; coord++) {
-        for (unsigned int i = 0; i < size; ++i) {
-            points[i][coord] = uniform(randomGenerator);
-        }
-    }
+    ASSERT_EQ(dim, cellVP.getDim()) << name;
+    ASSERT_EQ(0, cellVP.getTimestamp()) << name;
+    ASSERT_EQ(dim, cellVV.getDim()) << name;
+    ASSERT_EQ(1, cellVV.getTimestamp()) << name;
+    ASSERT_EQ(dim, cellAP.getDim()) << name;
+    ASSERT_EQ(2, cellAP.getTimestamp()) << name;
+    ASSERT_EQ(dim, cellAV.getDim()) << name;
+    ASSERT_EQ(0, cellAV.getTimestamp()) << name;
 
     for (unsigned int i = 0; i < size; ++i) {
-        vertices.at(i) = points[i];
-    }
-    Cell<2> cell1(vertices, 0);
-    Cell<2> cell2(vertices, 2);
-
-    Point p = points[0];
-    while (p[0] == points[0][0] && p[1] == points[0][1] && p[2] == points[0][2])
-        for (unsigned int coord = 0; coord < 3; coord++)
-            p[coord] = uniform(randomGenerator);
-    vertices.at(0) = p;
-    Cell<2> cell3(vertices, 1);
-
-    ASSERT_TRUE(cell1 == cell2);
-    ASSERT_FALSE(cell1 == cell3);
-}
-
-void verifyCellEqualityOperatorForCubes(std::mt19937 &randomGenerator,
-                                        std::vector<Point> &vertices) {
-    std::uniform_int_distribution<int> uniform(0, 65535);
-    const unsigned int size = 8;
-    Point points[size];
-    for (unsigned int coord = 0; coord < 3; coord++) {
-        for (unsigned int i = 0; i < size; ++i) {
-            points[i][coord] = uniform(randomGenerator);
-        }
-    }
-
-    for (unsigned int i = 0; i < size; ++i) {
-        vertices.at(i) = points[i];
-    }
-    Cell<3> cell1(vertices, 0);
-    Cell<3> cell2(vertices, 2);
-
-    Point p = points[0];
-    while (p[0] == points[0][0] && p[1] == points[0][1] && p[2] == points[0][2])
-        for (unsigned int coord = 0; coord < 3; coord++)
-            p[coord] = uniform(randomGenerator);
-    vertices.at(0) = p;
-    Cell<3> cell3(vertices, 1);
-
-    ASSERT_TRUE(cell1 == cell2);
-    ASSERT_FALSE(cell1 == cell3);
-}
-
-TEST(CellTest, IsFaceCoFaceMethods) {
-    verifyCellIsFaceCoFaceMethodsForVertices();
-    verifyCellIsFaceCoFaceMethodsForEdges();
-    verifyCellIsFaceCoFaceMethodsForSquares();
-    verifyCellIsFaceCoFaceMethodsForCubes();
-}
-
-void verifyCellIsFaceCoFaceMethodsForVertices() {
-    std::vector<Point> vertices;
-    Point p = {0, 0, 0};
-
-    vertices.push_back(p);
-    Cell<0> vertex(vertices, 0);
-
-    p[0] = 1;
-    vertices.push_back(p);
-    Cell<1> edge(vertices, 0);
-
-    vertices.at(0)[2] = 1;
-    vertices.at(1)[2] = 1;
-    p[0] = 0;
-    p[1] = 1;
-    p[2] = 1;
-    vertices.push_back(p);
-    p[0] = 1;
-    vertices.push_back(p);
-    Cell<2> square(vertices, 0);
-
-    p[2] = 0;
-    vertices.push_back(p);
-    p[1] = 0;
-    vertices.push_back(p);
-    p[0] = 0;
-    vertices.push_back(p);
-    p[1] = 1;
-    vertices.push_back(p);
-    Cell<3> cube(vertices, 0);
-
-    ASSERT_TRUE(vertex.isFace(vertex));
-    ASSERT_FALSE(vertex.isFace(edge));
-    ASSERT_FALSE(vertex.isFace(square));
-    ASSERT_FALSE(vertex.isFace(cube));
-    ASSERT_TRUE(vertex.isPossibleCoface(vertex));
-    ASSERT_TRUE(vertex.isPossibleCoface(edge));
-    ASSERT_FALSE(vertex.isPossibleCoface(square));
-    ASSERT_TRUE(vertex.isPossibleCoface(cube));
-}
-
-void verifyCellIsFaceCoFaceMethodsForEdges() {
-    std::vector<Point> vertices;
-    Point p = {0, 0, 0};
-
-    vertices.push_back(p);
-    Cell<0> vertex(vertices, 0);
-
-    p[0] = 1;
-    vertices.push_back(p);
-    Cell<1> edge(vertices, 0);
-
-    vertices.at(0)[2] = 1;
-    vertices.at(1)[2] = 1;
-    p[0] = 0;
-    p[1] = 1;
-    p[2] = 1;
-    vertices.push_back(p);
-    p[0] = 1;
-    vertices.push_back(p);
-    Cell<2> square(vertices, 0);
-
-    p[2] = 0;
-    vertices.push_back(p);
-    p[1] = 0;
-    vertices.push_back(p);
-    p[0] = 0;
-    vertices.push_back(p);
-    p[1] = 1;
-    vertices.push_back(p);
-    Cell<3> cube(vertices, 0);
-
-    ASSERT_TRUE(edge.isFace(vertex));
-    ASSERT_TRUE(edge.isFace(edge));
-    ASSERT_FALSE(edge.isFace(square));
-    ASSERT_FALSE(edge.isFace(cube));
-    ASSERT_FALSE(edge.isPossibleCoface(vertex));
-    ASSERT_TRUE(edge.isPossibleCoface(edge));
-    ASSERT_FALSE(edge.isPossibleCoface(square));
-    ASSERT_TRUE(edge.isPossibleCoface(cube));
-}
-
-void verifyCellIsFaceCoFaceMethodsForSquares() {
-    std::vector<Point> vertices;
-    Point p = {0, 0, 0};
-
-    vertices.push_back(p);
-    Cell<0> vertex(vertices, 0);
-
-    vertices.at(0)[2] = 1;
-    p[0] = 1;
-    p[2] = 1;
-    vertices.push_back(p);
-    Cell<1> edge(vertices, 0);
-
-    p[1] = 1;
-    vertices.push_back(p);
-    p[0] = 0;
-    vertices.push_back(p);
-    Cell<2> square(vertices, 0);
-
-    p[2] = 0;
-    vertices.push_back(p);
-    p[1] = 0;
-    vertices.push_back(p);
-    p[0] = 1;
-    vertices.push_back(p);
-    p[1] = 1;
-    vertices.push_back(p);
-    Cell<3> cube(vertices, 0);
-
-    ASSERT_FALSE(square.isFace(vertex));
-    ASSERT_TRUE(square.isFace(edge));
-    ASSERT_TRUE(square.isFace(square));
-    ASSERT_FALSE(square.isFace(cube));
-    ASSERT_FALSE(square.isPossibleCoface(vertex));
-    ASSERT_FALSE(square.isPossibleCoface(edge));
-    ASSERT_TRUE(square.isPossibleCoface(square));
-    ASSERT_TRUE(square.isPossibleCoface(cube));
-}
-
-void verifyCellIsFaceCoFaceMethodsForCubes() {
-    std::vector<Point> vertices;
-    Point p = {0, 0, 0};
-
-    vertices.push_back(p);
-    Cell<0> vertex(vertices, 0);
-
-    vertices.at(0)[0] = 1;
-    vertices.at(0)[2] = 2;
-    p[0] = 1;
-    p[2] = 1;
-    vertices.push_back(p);
-    Cell<1> edge(vertices, 0);
-
-    vertices.at(0)[0] = 0;
-    vertices.at(0)[2] = 1;
-    p[1] = 1;
-    vertices.push_back(p);
-    p[0] = 0;
-    vertices.push_back(p);
-    Cell<2> square(vertices, 0);
-
-    p[2] = 0;
-    vertices.push_back(p);
-    p[1] = 0;
-    vertices.push_back(p);
-    p[0] = 1;
-    vertices.push_back(p);
-    p[1] = 1;
-    vertices.push_back(p);
-    Cell<3> cube(vertices, 0);
-
-    ASSERT_TRUE(cube.isFace(vertex));
-    ASSERT_FALSE(cube.isFace(edge));
-    ASSERT_TRUE(cube.isFace(square));
-    ASSERT_TRUE(cube.isFace(cube));
-    ASSERT_FALSE(cube.isPossibleCoface(vertex));
-    ASSERT_FALSE(cube.isPossibleCoface(edge));
-    ASSERT_FALSE(cube.isPossibleCoface(square));
-    ASSERT_TRUE(cube.isPossibleCoface(cube));
-}
-
-TEST(CellTest, GetBoundaryMethod) {
-    verifyCellGetBoundaryMethodForEdges();
-    verifyCellGetBoundaryMethodForSquares();
-    verifyCellGetBoundaryMethodForCubes();
-}
-
-void verifyCellGetBoundaryMethodForEdges() {
-    std::vector<Point> vertices;
-    Point p = {0, 0, 0};
-
-    vertices.push_back(p);
-    Cell<0> v1(vertices, 0);
-    vertices.at(0)[0] = 1;
-    Cell<0> v2(vertices, 0);
-
-    p[0] = 0;
-    vertices.push_back(p);
-    Cell<1> edge(vertices, 0);
-
-    Cell<1>::boundary_container boundary = edge.getBoundary();
-
-    ASSERT_EQ(2, boundary.size());
-
-    for (auto it = boundary.begin(); it != boundary.end(); ++it) {
-        ASSERT_TRUE(*it == v1 || *it == v2);
-        for (auto it2 = it + 1; it2 != boundary.end(); ++it2) {
-            ASSERT_FALSE(*it == *it2);
-        }
+        ASSERT_TRUE(verticesAV[i] == cellVP[i])
+                << printVertex(verticesAV[i]) << ", "
+                << printVertex(cellVP[i]) << " - " << name;
+        ASSERT_TRUE(verticesAV[i] == cellVV[i])
+                << printVertex(verticesAV[i]) << ", "
+                << printVertex(cellVV[i]) << " - " << name;
+        ASSERT_TRUE(verticesAV[i] == cellAP[i])
+                << printVertex(verticesAV[i]) << ", "
+                << printVertex(cellAP[i]) << " - " << name;
+        ASSERT_TRUE(verticesAV[i] == cellAV[i])
+                << printVertex(verticesAV[i]) << ", "
+                << printVertex(cellAV[i]) << " - " << name;
     }
 }
 
-void verifyCellGetBoundaryMethodForSquares() {
-    std::vector<Point> vertices;
-    Point p = {0, 0, 0};
+TEST(CellTest, Content) {
+    std::mt19937 randomGenerator(0); // Repeatable seed
 
-    vertices.push_back(p);
-    p[2] = 1;
-    vertices.push_back(p);
-    Cell<1> e1(vertices, 0);
-    vertices.at(0)[2] = 1;
-    vertices.at(1)[0] = 1;
-    Cell<1> e2(vertices, 0);
-    vertices.at(0)[0] = 1;
-    vertices.at(1)[2] = 0;
-    Cell<1> e3(vertices, 0);
-    vertices.at(0)[2] = 0;
-    vertices.at(1)[0] = 0;
-    Cell<1> e4(vertices, 0);
-
-    vertices.push_back(p);
-    p[0] = 1;
-    vertices.push_back(p);
-    Cell<2> square(vertices, 0);
-
-    Cell<2>::boundary_container boundary = square.getBoundary();
-
-    ASSERT_EQ(4, boundary.size());
-
-    for (auto it = boundary.begin(); it != boundary.end(); ++it) {
-        ASSERT_TRUE(*it == e1 || *it == e2 || *it == e3 || *it == e4);
-        for (auto it2 = it + 1; it2 != boundary.end(); ++it2) {
-            ASSERT_FALSE(*it == *it2);
-        }
+    for (int repetition = 0; repetition < 1000; repetition++) {
+      verifyCellContent<0>(randomGenerator, "dim 0");
+      verifyCellContent<1>(randomGenerator, "dim 1");
+      verifyCellContent<2>(randomGenerator, "dim 2");
+      verifyCellContent<3>(randomGenerator, "dim 3");
     }
 }
 
-void verifyCellGetBoundaryMethodForCubes() {
-    std::vector<Point> vertices;
-    Point p1 = {0, 0, 0};
-    Point p2 = {0, 0, 1};
-    Point p3 = {0, 1, 0};
-    Point p4 = {0, 1, 1};
-    Point p5 = {1, 0, 0};
-    Point p6 = {1, 0, 1};
-    Point p7 = {1, 1, 0};
-    Point p8 = {1, 1, 1};
-
-    vertices.push_back(p1);
-    vertices.push_back(p2);
-    vertices.push_back(p3);
-    vertices.push_back(p4);
-    Cell<2> s1(vertices, 0);
-    vertices.at(0) = p1;
-    vertices.at(1) = p2;
-    vertices.at(2) = p5;
-    vertices.at(3) = p6;
-    Cell<2> s2(vertices, 0);
-    vertices.at(0) = p1;
-    vertices.at(1) = p3;
-    vertices.at(2) = p5;
-    vertices.at(3) = p7;
-    Cell<2> s3(vertices, 0);
-    vertices.at(0) = p2;
-    vertices.at(1) = p4;
-    vertices.at(2) = p6;
-    vertices.at(3) = p8;
-    Cell<2> s4(vertices, 0);
-    vertices.at(0) = p3;
-    vertices.at(1) = p4;
-    vertices.at(2) = p7;
-    vertices.at(3) = p8;
-    Cell<2> s5(vertices, 0);
-    vertices.at(0) = p5;
-    vertices.at(1) = p6;
-    vertices.at(2) = p7;
-    vertices.at(3) = p8;
-    Cell<2> s6(vertices, 0);
-
-    vertices.push_back(p1);
-    vertices.push_back(p2);
-    vertices.push_back(p3);
-    vertices.push_back(p4);
-    Cell<3> cube(vertices, 0);
-
-    Cell<3>::boundary_container boundary = cube.getBoundary();
-
-    ASSERT_EQ(6, boundary.size());
-
-    for (auto it = boundary.begin(); it != boundary.end(); ++it) {
-        ASSERT_TRUE(*it == s1 || *it == s2 || *it == s3 || *it == s4 || *it == s5 ||
-                    *it == s6);
-        for (auto it2 = it + 1; it2 != boundary.end(); ++it2) {
-            ASSERT_FALSE(*it == *it2);
-        }
+template<unsigned int dim>
+void verifyCellFaceRelations(
+        Cell<dim> &m,
+        Cell<0> (&vertices)[12],
+        Cell<1> (&edges)[20],
+        Cell<2> (&squares)[11],
+        Cell<3> (&cubes)[2],
+        std::unordered_set<unsigned int> &verticesTrueAt,
+        std::unordered_set<unsigned int> &edgesTrueAt,
+        std::unordered_set<unsigned int> &squaresTrueAt,
+        std::unordered_set<unsigned int> &cubesTrueAt,
+        std::string name)
+{
+    for (unsigned int i = 0; i < 12; i++){
+        if (verticesTrueAt.find(i) == verticesTrueAt.end())
+            ASSERT_FALSE(m.isFace(vertices[i]))
+                    << printVertex(vertices[i][0]) << " - " << name;
+        else
+            ASSERT_TRUE(m.isFace(vertices[i]))
+                    << printVertex(vertices[i][0]) << " - " << name;
+    }
+    for (unsigned int i = 0; i < 20; i++){
+        if (edgesTrueAt.find(i) == edgesTrueAt.end())
+            ASSERT_FALSE(m.isFace(edges[i]))
+                    << printVertex(edges[i][0]) << ", "
+                    << printVertex(edges[i][1]) << " - " << name;
+        else
+            ASSERT_TRUE(m.isFace(edges[i]))
+                    << printVertex(edges[i][0]) << ", "
+                    << printVertex(edges[i][1]) << " - " << name;
+    }
+    for (unsigned int i = 0; i < 11; i++){
+        if (squaresTrueAt.find(i) == squaresTrueAt.end())
+            ASSERT_FALSE(m.isFace(squares[i]))
+                    << printVertex(squares[i][0]) << ", "
+                    << printVertex(squares[i][1]) << ", "
+                    << printVertex(squares[i][2]) << ", "
+                    << printVertex(squares[i][3]) << " - " << name;
+        else
+            ASSERT_TRUE(m.isFace(squares[i]))
+                    << printVertex(squares[i][0]) << ", "
+                    << printVertex(squares[i][1]) << ", "
+                    << printVertex(squares[i][2]) << ", "
+                    << printVertex(squares[i][3]) << " - " << name;
+    }
+    for (unsigned int i = 0; i < 2; i++){
+        if (cubesTrueAt.find(i) == cubesTrueAt.end())
+            ASSERT_FALSE(m.isFace(cubes[i]))
+                    << printVertex(cubes[i][0]) << ", "
+                    << printVertex(cubes[i][1]) << ", "
+                    << printVertex(cubes[i][2]) << ", "
+                    << printVertex(cubes[i][3]) << ", "
+                    << printVertex(cubes[i][4]) << ", "
+                    << printVertex(cubes[i][5]) << ", "
+                    << printVertex(cubes[i][6]) << ", "
+                    << printVertex(cubes[i][7]) << " - " << name;
+        else
+            ASSERT_TRUE(m.isFace(cubes[i]))
+                    << printVertex(cubes[i][0]) << ", "
+                    << printVertex(cubes[i][1]) << ", "
+                    << printVertex(cubes[i][2]) << ", "
+                    << printVertex(cubes[i][3]) << ", "
+                    << printVertex(cubes[i][4]) << ", "
+                    << printVertex(cubes[i][5]) << ", "
+                    << printVertex(cubes[i][6]) << ", "
+                    << printVertex(cubes[i][7]) << " - " << name;
     }
 }
+
+template<unsigned int dim>
+void verifyCellCofaceRelations(
+        Cell<dim> &m,
+        Cell<0> (&vertices)[12],
+        Cell<1> (&edges)[20],
+        Cell<2> (&squares)[11],
+        Cell<3> (&cubes)[2],
+        std::unordered_set<unsigned int> &verticesTrueAt,
+        std::unordered_set<unsigned int> &edgesTrueAt,
+        std::unordered_set<unsigned int> &squaresTrueAt,
+        std::unordered_set<unsigned int> &cubesTrueAt,
+        std::string name)
+{
+    for (unsigned int i = 0; i < 12; i++){
+        if (verticesTrueAt.find(i) == verticesTrueAt.end())
+            ASSERT_FALSE(m.isPossibleCoface(vertices[i]))
+                    << printVertex(vertices[i][0]) << " - " << name;
+        else
+            ASSERT_TRUE(m.isPossibleCoface(vertices[i]))
+                    << printVertex(vertices[i][0]) << " - " << name;
+    }
+    for (unsigned int i = 0; i < 20; i++){
+        if (edgesTrueAt.find(i) == edgesTrueAt.end())
+            ASSERT_FALSE(m.isPossibleCoface(edges[i]))
+                    << printVertex(edges[i][0]) << ", "
+                    << printVertex(edges[i][1]) << " - " << name;
+        else
+            ASSERT_TRUE(m.isPossibleCoface(edges[i]))
+                    << printVertex(edges[i][0]) << ", "
+                    << printVertex(edges[i][1]) << " - " << name;
+    }
+    for (unsigned int i = 0; i < 11; i++){
+        if (squaresTrueAt.find(i) == squaresTrueAt.end())
+            ASSERT_FALSE(m.isPossibleCoface(squares[i]))
+                    << printVertex(squares[i][0]) << ", "
+                    << printVertex(squares[i][1]) << ", "
+                    << printVertex(squares[i][2]) << ", "
+                    << printVertex(squares[i][3]) << " - " << name;
+        else
+            ASSERT_TRUE(m.isPossibleCoface(squares[i]))
+                    << printVertex(squares[i][0]) << ", "
+                    << printVertex(squares[i][1]) << ", "
+                    << printVertex(squares[i][2]) << ", "
+                    << printVertex(squares[i][3]) << " - " << name;
+    }
+    for (unsigned int i = 0; i < 2; i++){
+        if (cubesTrueAt.find(i) == cubesTrueAt.end())
+            ASSERT_FALSE(m.isPossibleCoface(cubes[i]))
+                    << printVertex(cubes[i][0]) << ", "
+                    << printVertex(cubes[i][1]) << ", "
+                    << printVertex(cubes[i][2]) << ", "
+                    << printVertex(cubes[i][3]) << ", "
+                    << printVertex(cubes[i][4]) << ", "
+                    << printVertex(cubes[i][5]) << ", "
+                    << printVertex(cubes[i][6]) << ", "
+                    << printVertex(cubes[i][7]) << " - " << name;
+        else
+            ASSERT_TRUE(m.isPossibleCoface(cubes[i]))
+                    << printVertex(cubes[i][0]) << ", "
+                    << printVertex(cubes[i][1]) << ", "
+                    << printVertex(cubes[i][2]) << ", "
+                    << printVertex(cubes[i][3]) << ", "
+                    << printVertex(cubes[i][4]) << ", "
+                    << printVertex(cubes[i][5]) << ", "
+                    << printVertex(cubes[i][6]) << ", "
+                    << printVertex(cubes[i][7]) << " - " << name;
+    }
+}
+
+template<unsigned int dim, unsigned int index>
+void verificationLoopForCellFaceRelation(
+        Cell<0> (&vertices)[12],
+        Cell<1> (&edges)[20],
+        Cell<2> (&squares)[11],
+        Cell<3> (&cubes)[2])
+{
+    std::unordered_set<unsigned int> verticesTrueAt;
+    std::unordered_set<unsigned int> edgesTrueAt;
+    std::unordered_set<unsigned int> squaresTrueAt;
+    std::unordered_set<unsigned int> cubesTrueAt;
+
+    buildFaceRelationForCellExample<dim,index>(
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt);
+    if constexpr (dim == 0){
+        verifyCellFaceRelations(vertices[index],
+                vertices, edges, squares, cubes,
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt,
+                "v" + std::to_string(index) + " face relation");
+
+        verificationLoopForCellFaceRelation<dim, index-1>(
+                    vertices, edges, squares, cubes);
+    } else if constexpr (dim == 1) {
+        verifyCellFaceRelations(edges[index],
+                vertices, edges, squares, cubes,
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt,
+                "e" + std::to_string(index) + " face relation");
+        if constexpr (index == 0)
+            verificationLoopForCellFaceRelation<dim-1, 11>(
+                    vertices, edges, squares, cubes);
+        else
+            verificationLoopForCellFaceRelation<dim, index-1>(
+                        vertices, edges, squares, cubes);
+    } else if constexpr (dim == 2) {
+        verifyCellFaceRelations(squares[index],
+                vertices, edges, squares, cubes,
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt,
+                "s" + std::to_string(index) + " face relation");
+        if constexpr (index == 0)
+            verificationLoopForCellFaceRelation<dim-1, 19>(
+                    vertices, edges, squares, cubes);
+        else
+            verificationLoopForCellFaceRelation<dim, index-1>(
+                        vertices, edges, squares, cubes);
+    } else {
+        verifyCellFaceRelations(cubes[index],
+                vertices, edges, squares, cubes,
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt,
+                "c" + std::to_string(index) + " face relation");
+        if constexpr (index == 0)
+            verificationLoopForCellFaceRelation<dim-1, 10>(
+                    vertices, edges, squares, cubes);
+        else
+            verificationLoopForCellFaceRelation<dim, index-1>(
+                        vertices, edges, squares, cubes);
+    }
+
+}
+
+template<>
+void verificationLoopForCellFaceRelation<0,0>(
+        Cell<0> (&vertices)[12],
+        Cell<1> (&edges)[20],
+        Cell<2> (&squares)[11],
+        Cell<3> (&cubes)[2])
+{
+    std::unordered_set<unsigned int> verticesTrueAt;
+    std::unordered_set<unsigned int> edgesTrueAt;
+    std::unordered_set<unsigned int> squaresTrueAt;
+    std::unordered_set<unsigned int> cubesTrueAt;
+
+    buildFaceRelationForCellExample<0,0>(
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt);
+    verifyCellFaceRelations(vertices[0],
+            vertices, edges, squares, cubes,
+            verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt,
+            "v0 face relation");
+}
+
+template<unsigned int dim, unsigned int index>
+void verificationLoopForCellCofaceRelation(
+        Cell<0> (&vertices)[12],
+        Cell<1> (&edges)[20],
+        Cell<2> (&squares)[11],
+        Cell<3> (&cubes)[2])
+{
+    std::unordered_set<unsigned int> verticesTrueAt;
+    std::unordered_set<unsigned int> edgesTrueAt;
+    std::unordered_set<unsigned int> squaresTrueAt;
+    std::unordered_set<unsigned int> cubesTrueAt;
+
+    buildCofaceRelationForCellExample<dim,index>(
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt);
+    if constexpr (dim == 0){
+        verifyCellCofaceRelations(vertices[index],
+                vertices, edges, squares, cubes,
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt,
+                "v" + std::to_string(index) + " coface relation");
+
+        verificationLoopForCellCofaceRelation<dim, index-1>(
+                    vertices, edges, squares, cubes);
+    } else if constexpr (dim == 1) {
+        verifyCellCofaceRelations(edges[index],
+                vertices, edges, squares, cubes,
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt,
+                "e" + std::to_string(index) + " coface relation");
+        if constexpr (index == 0)
+            verificationLoopForCellCofaceRelation<dim-1, 11>(
+                    vertices, edges, squares, cubes);
+        else
+            verificationLoopForCellCofaceRelation<dim, index-1>(
+                        vertices, edges, squares, cubes);
+    } else if constexpr (dim == 2) {
+        verifyCellCofaceRelations(squares[index],
+                vertices, edges, squares, cubes,
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt,
+                "s" + std::to_string(index) + " coface relation");
+        if constexpr (index == 0)
+            verificationLoopForCellCofaceRelation<dim-1, 19>(
+                    vertices, edges, squares, cubes);
+        else
+            verificationLoopForCellCofaceRelation<dim, index-1>(
+                        vertices, edges, squares, cubes);
+    } else {
+        verifyCellCofaceRelations(cubes[index],
+                vertices, edges, squares, cubes,
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt,
+                "c" + std::to_string(index) + " coface relation");
+        if constexpr (index == 0)
+            verificationLoopForCellCofaceRelation<dim-1, 10>(
+                    vertices, edges, squares, cubes);
+        else
+            verificationLoopForCellCofaceRelation<dim, index-1>(
+                        vertices, edges, squares, cubes);
+    }
+
+}
+
+template<>
+void verificationLoopForCellCofaceRelation<0,0>(
+        Cell<0> (&vertices)[12],
+        Cell<1> (&edges)[20],
+        Cell<2> (&squares)[11],
+        Cell<3> (&cubes)[2])
+{
+    std::unordered_set<unsigned int> verticesTrueAt;
+    std::unordered_set<unsigned int> edgesTrueAt;
+    std::unordered_set<unsigned int> squaresTrueAt;
+    std::unordered_set<unsigned int> cubesTrueAt;
+
+    buildCofaceRelationForCellExample<0,0>(
+                verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt);
+    verifyCellCofaceRelations(vertices[0],
+            vertices, edges, squares, cubes,
+            verticesTrueAt, edgesTrueAt, squaresTrueAt, cubesTrueAt,
+            "v0 coface relation");
+}
+
+TEST(CellTest, Relations) {
+    Cell<0> vertices[12];
+    Cell<1> edges[20];
+    Cell<2> squares[11];
+    Cell<3> cubes[2];
+
+    buildExampleForCells(vertices, edges, squares, cubes);
+
+    verificationLoopForCellFaceRelation<3,1>(vertices, edges, squares, cubes);
+    verificationLoopForCellCofaceRelation<3,1>(vertices, edges, squares, cubes);
+}
+
+TEST(CellTest, Converters) {
+    using vertex = typename Cell<0>::vertex;
+
+    std::vector<Point> points;
+    points.push_back({31,6,248});
+    Cell<0> cell(points, 0);
+
+    Point resPoint = Cell<0>::vertexToPoint(cell[0]);
+
+    ASSERT_EQ(31, resPoint[0]) << "vertexToPoint X";
+    ASSERT_EQ(6, resPoint[1]) << "vertexToPoint Y";
+    ASSERT_EQ(248, resPoint[2]) << "vertexToPoint Z";
+
+    int resX = Cell<0>::vertexToCoordinate(cell[0], 0);
+    int resY = Cell<0>::vertexToCoordinate(cell[0], 1);
+    int resZ = Cell<0>::vertexToCoordinate(cell[0], 2);
+
+    ASSERT_EQ(31, resX) << "vertexToCoordinate X";
+    ASSERT_EQ(6, resY) << "vertexToCoordinate Y";
+    ASSERT_EQ(248, resZ) << "vertexToCoordinate Z";
+
+    vertex resV = Cell<0>::pointToVertex(points.at(0));
+
+    ASSERT_TRUE(cell[0] == resV) << "pointToVertex";
+}
+
+TEST(CellContainerTest, Content) {
+    CellContainer cc;
+    Cell<0> vertices[12];
+    Cell<1> edges[20];
+    Cell<2> squares[11];
+    Cell<3> cubes[2];
+
+    buildExampleForCells(vertices, edges, squares, cubes);
+
+    for (Cell<0> c : vertices) cc.insert(c);
+    for (Cell<1> c : edges) cc.insert(c);
+    for (Cell<2> c : squares) cc.insert(c);
+    for (Cell<3> c : cubes) cc.insert(c);
+
+    ASSERT_EQ(12, cc.getSize<0>());
+    ASSERT_EQ(20, cc.getSize<1>());
+    ASSERT_EQ(11, cc.getSize<2>());
+    ASSERT_EQ(2, cc.getSize<3>());
+
+    CellContainer::const_cell_iterator<0> it0 = cc.begin<0>();
+    for (unsigned int i = 0; i < 12; i++){
+        ASSERT_TRUE(vertices[i] == cc.at<0>(i)) << "dim 0 at " << i;
+        ASSERT_TRUE(vertices[i] == *it0) << "dim 0 iterator " << i;
+        it0++;
+    }
+    ASSERT_TRUE(it0 == cc.end<0>());
+
+    CellContainer::const_cell_iterator<1> it1 = cc.begin<1>();
+    for (unsigned int i = 0; i < 20; i++){
+        ASSERT_TRUE(edges[i] == cc.at<1>(i)) << "dim 1 at " << i;
+        ASSERT_TRUE(edges[i] == *it1) << "dim 1 iterator " << i;
+        it1++;
+    }
+    ASSERT_TRUE(it1 == cc.end<1>());
+
+    CellContainer::const_cell_iterator<2> it2 = cc.begin<2>();
+    for (unsigned int i = 0; i < 11; i++){
+        ASSERT_TRUE(squares[i] == cc.at<2>(i)) << "dim 2 at " << i;
+        ASSERT_TRUE(squares[i] == *it2) << "dim 2 iterator " << i;
+        it2++;
+    }
+    ASSERT_TRUE(it2 == cc.end<2>());
+
+    CellContainer::const_cell_iterator<3> it3 = cc.begin<3>();
+    for (unsigned int i = 0; i < 2; i++){
+        ASSERT_TRUE(cubes[i] == cc.at<3>(i)) << "dim 3 at " << i;
+        ASSERT_TRUE(cubes[i] == *it3) << "dim 3 iterator " << i;
+        it3++;
+    }
+    ASSERT_TRUE(it3 == cc.end<3>());
+}
+
+TEST(CellContainerTest, Modifier) {
+    CellContainer cc;
+    Cell<0> vertices[12];
+    Cell<1> edges[20];
+    Cell<2> squares[11];
+    Cell<3> cubes[2];
+
+    buildExampleForCells(vertices, edges, squares, cubes);
+
+    cc.resize<0>(12);
+    for (unsigned int i = 0; i < 12; i++){
+        cc.insertAt(vertices[i], 11 - i);
+    }
+    cc.resize<1>(20);
+    for (unsigned int i = 0; i < 20; i++){
+        cc.insertAt(edges[i], 19 - i);
+    }
+    cc.resize<2>(11);
+    for (unsigned int i = 0; i < 11; i++){
+        cc.insertAt(squares[i], 10 - i);
+    }
+    cc.resize<3>(2);
+    for (unsigned int i = 0; i < 2; i++){
+        cc.insertAt(cubes[i], 1 - i);
+    }
+
+    for (unsigned int i = 0; i < 12; i++){
+        ASSERT_TRUE(vertices[i] == cc.at<0>(11 - i)) << "dim 0 at " << i;
+    }
+    for (unsigned int i = 0; i < 20; i++){
+        ASSERT_TRUE(edges[i] == cc.at<1>(19 - i)) << "dim 1 at " << i;
+    }
+    for (unsigned int i = 0; i < 11; i++){
+        ASSERT_TRUE(squares[i] == cc.at<2>(10 - i)) << "dim 2 at " << i;
+    }
+    for (unsigned int i = 0; i < 2; i++){
+        ASSERT_TRUE(cubes[i] == cc.at<3>(1 - i)) << "dim 3 at " << i;
+    }
+}
+
+TEST(CellContainerTest, Sorts) {
+    CellContainer cc;
+
+    Cell<0> verticesSorted[5];
+    Cell<1> edgesSorted[5];
+    Cell<2> squaresSorted[5];
+    Cell<3> cubesSorted[5];
+
+    buildExampleForCellContainer(cc);
+
+    buildSortedByTimestampForCellContainerExample(
+                verticesSorted, edgesSorted,
+                squaresSorted, cubesSorted);
+
+    cc.sortByTimestamp<0>();
+    cc.sortByTimestamp<1>();
+    cc.sortByTimestamp<2>();
+    cc.sortByTimestamp<3>();
+
+    for (unsigned int i = 0; i < 5; i++){
+        ASSERT_TRUE(verticesSorted[i] == cc.at<0>(i))
+                << "dim 0 time order " << i;
+        ASSERT_TRUE(edgesSorted[i] == cc.at<1>(i))
+                << "dim 1 time order " << i;
+        ASSERT_TRUE(squaresSorted[i] == cc.at<2>(i))
+                << "dim 2 time order " << i;
+        ASSERT_TRUE(cubesSorted[i] == cc.at<3>(i))
+                << "dim 3 time order " << i;
+    }
+
+    buildSortedLexicographicalyForCellContainerExample(
+            verticesSorted, edgesSorted,
+            squaresSorted, cubesSorted);
+
+    cc.sortLexicographicaly<0>();
+    cc.sortLexicographicaly<1>();
+    cc.sortLexicographicaly<2>();
+    cc.sortLexicographicaly<3>();
+
+    for (unsigned int i = 0; i < 5; i++){
+        ASSERT_TRUE(verticesSorted[i] == cc.at<0>(i))
+                << "dim 0 lex order " << i;
+        ASSERT_TRUE(edgesSorted[i] == cc.at<1>(i))
+                << "dim 1 lex order " << i;
+        ASSERT_TRUE(squaresSorted[i] == cc.at<2>(i))
+                << "dim 2 lex order " << i;
+        ASSERT_TRUE(cubesSorted[i] == cc.at<3>(i))
+                << "dim 3 lex order " << i;
+    }
+
+    buildSortedForFiltrationForCellContainerExample(
+            verticesSorted, edgesSorted,
+            squaresSorted, cubesSorted);
+
+    cc.sortForFiltration<0>();
+    cc.sortForFiltration<1>();
+    cc.sortForFiltration<2>();
+    cc.sortForFiltration<3>();
+
+    for (unsigned int i = 0; i < 5; i++){
+        ASSERT_TRUE(verticesSorted[i] == cc.at<0>(i))
+                << "dim 0 filtration order " << i;
+        ASSERT_TRUE(edgesSorted[i] == cc.at<1>(i))
+                << "dim 1 filtration order " << i;
+        ASSERT_TRUE(squaresSorted[i] == cc.at<2>(i))
+                << "dim 2 filtration order " << i;
+        ASSERT_TRUE(cubesSorted[i] == cc.at<3>(i))
+                << "dim 3 filtration order " << i;
+    }
+}
+

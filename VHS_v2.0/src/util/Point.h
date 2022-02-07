@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -43,6 +43,22 @@ struct PointHasher {
         for (unsigned int i = 0; i < 3; i++)
             h += static_cast<int long long>(p[i]) << (16 * i);
         return std::hash<int long long>{}(h);
+    }
+};
+
+struct PointStrictLessThanComparator
+{
+    inline bool operator() (const Point& p1, const Point& p2)
+    {
+        if (p1[2] < p2[2]) return true;
+        if (p1[2] > p2[2]) return false;
+
+        if (p1[1] < p2[1]) return true;
+        if (p1[1] > p2[1]) return false;
+
+        if (p1[0] < p2[0]) return true;
+
+        return false;
     }
 };
 

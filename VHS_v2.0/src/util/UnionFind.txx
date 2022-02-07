@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -40,16 +40,16 @@ void UnionFind<Element>::initialize(const Element &e) {
 }
 
 template <class Element>
-void UnionFind<Element>::merge(const Element &e1, const Element &e2) {
+bool UnionFind<Element>::merge(const Element &e1, const Element &e2) {
     auto it2 = _indices.find(e2);
 
-    if (it2 == _indices.end()) return;
+    if (it2 == _indices.end()) return false;
 
     Node& e1Parent = _nodes.at(_find(_indices.at(e1)));
     Node& e2Parent = _nodes.at(_find(it2->second));
 
     if (e1Parent._parent == e2Parent._parent) {
-        return;
+        return false;
     }
 
     _numberOfComponents--;
@@ -62,11 +62,75 @@ void UnionFind<Element>::merge(const Element &e1, const Element &e2) {
         e2Parent._parent = e1Parent._parent;
         (e1Parent._rank)++;
     }
+
+    return true;
 }
 
 template <class Element>
-inline bool UnionFind<Element>::contains(const Element &e){
+inline bool UnionFind<Element>::contains(const Element &e) const
+{
     return _indices.find(e) != _indices.end();
+}
+
+template <class Element>
+void UnionFind<Element>::getRoots(
+        std::unordered_set<Element>& roots, int minSize)
+{
+    if (minSize == 1){
+        getRoots(roots);
+        return;
+    }
+
+    roots.clear();
+    std::unordered_map<index, int> counts;
+
+    for (Node& n : _nodes){
+        index i = _find(n._parent);
+        auto it = counts.find(i);
+        if (it == counts.end()){
+            counts.emplace(i, 1);
+        } else {
+            (it->second)++;
+        }
+    }
+
+    for (auto it : counts){
+        if (it.second >= minSize){
+            roots.insert(_nodes.at(it.first)._element);
+        }
+    }
+}
+
+template <class Element>
+void UnionFind<Element>::getRoots(std::unordered_set<Element>& roots)
+{
+    roots.clear();
+
+    for (Node& n : _nodes){
+        index i = _find(n._parent);
+        roots.insert(_nodes.at(i)._element);
+    }
+}
+
+template <class Element>
+void UnionFind<Element>::getSets(std::vector<std::vector<Element> >& sets)
+{
+    sets.clear();
+    sets.resize(_numberOfComponents);
+
+    std::unordered_map<index, index> indexTranslation;
+    index lastIndex = 0;
+
+    for (const Node& n : _nodes){
+        index r = _find(n._parent);
+        if (indexTranslation.find(r) == indexTranslation.end()){
+            indexTranslation.emplace(r, lastIndex);
+            sets.at(lastIndex).push_back(n._element);
+            lastIndex++;
+        } else {
+            sets.at(indexTranslation.at(r)).push_back(n._element);
+        }
+    }
 }
 
 template <class Element>

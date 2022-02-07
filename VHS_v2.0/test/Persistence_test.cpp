@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -23,72 +23,86 @@
  * Test file for the Persistent Homoly class.
  **/
 
-#include <algorithm>
 #include <gtest/gtest.h>
-#include <random>
 #include <vector>
-#include <unordered_set>
 
 #include "persistence/PersistentHomology.h"
-#include "shape/AddableShape.h"
-#include "shape/DualSkeleton.h"
 #include "shape/Voxel.h"
+#include "shape/DualSkeleton.h"
+#include "shape/AddableShape.h"
 
 #include "test_examples.h"
 
 using shape_simplification::persistence::PersistentHomology;
+using shape_simplification::shape::Voxel;
 using shape_simplification::shape::AddableShape;
 using shape_simplification::shape::DualSkeleton;
-using shape_simplification::shape::Voxel;
 
-template <class Shape, class Skeleton, class Voxel>
-void verifyPersReduction(std::string name);
+TEST(PersistenceTest, Persistence) {
+    using Skeleton = DualSkeleton<AddableShape<Voxel>, Voxel, 0, 3>;
+    using PH = PersistentHomology<Skeleton, Voxel, 0, 3>;
 
-TEST(MatrixTest, Reduction) {
-    verifyPersReduction<AddableShape<Voxel>,
-            DualSkeleton<AddableShape<Voxel>, Voxel, 0, 3>, Voxel>(
-                "Addable Shape");
-}
-
-template <class Shape, class Skeleton, class Voxel>
-void verifyPersReduction(std::string name) {
     std::vector<Voxel> voxels;
-    std::vector<typename Shape::Level> minLevels;
+    std::vector<Voxel> chain;
+    std::vector<PH::persistent_pair> pairsSorted;
 
-    buildExample1<Shape,Voxel>(voxels, minLevels);
+    buildExample1<Voxel>(voxels);
 
-    Shape shape(voxels, minLevels);
+    AddableShape<Voxel> shape(voxels);
     Skeleton skeleton(shape);
-    PersistentHomology<Skeleton, Voxel, 0, 3> pers(skeleton);
+    PH pers(skeleton);
 
     pers.reduceMatrix();
-    const std::vector<typename PersistentHomology<
-            Skeleton,
-            Voxel,
-            0,
-            3>::persistent_pair> &pairs = pers.getPersistentPairs();
-    std::vector<Voxel> chain;
+    for (PH::persistent_pair p : pers.getPersistentPairs())
+        pairsSorted.push_back(p);
 
-    ASSERT_EQ(4, pairs.size());
-    ASSERT_EQ(0, (int)(pers.getTimestamp(pairs.at(0).first))) << name;
-    ASSERT_EQ(1, (int)(pers.getTimestamp(pairs.at(0).second))) << name;
-    ASSERT_EQ(0, (int)(pers.getTimestamp(pairs.at(1).first))) << name;
-    ASSERT_EQ(1, (int)(pers.getTimestamp(pairs.at(1).second))) << name;
-    ASSERT_EQ(0, (int)(pers.getTimestamp(pairs.at(2).first))) << name;
-    ASSERT_EQ(2, (int)(pers.getTimestamp(pairs.at(2).second))) << name;
-    ASSERT_EQ(1, (int)(pers.getTimestamp(pairs.at(3).first))) << name;
-    ASSERT_EQ(2, (int)(pers.getTimestamp(pairs.at(3).second))) << name;
-    ASSERT_EQ(0, pers.getDimension(pairs.at(0).first)) << name;
-    ASSERT_EQ(1, pers.getDimension(pairs.at(0).second)) << name;
-    ASSERT_EQ(0, pers.getDimension(pairs.at(1).first)) << name;
-    ASSERT_EQ(1, pers.getDimension(pairs.at(1).second)) << name;
-    ASSERT_EQ(0, pers.getDimension(pairs.at(2).first)) << name;
-    ASSERT_EQ(1, pers.getDimension(pairs.at(2).second)) << name;
-    ASSERT_EQ(1, pers.getDimension(pairs.at(3).first)) << name;
-    ASSERT_EQ(2, pers.getDimension(pairs.at(3).second)) << name;
+    std::sort(pairsSorted.begin(), pairsSorted.end(),
+              [&pers](const PH::persistent_pair& p1,
+                      const PH::persistent_pair& p2){
+                    if (pers.getTimestamp(p1.first) <
+                            pers.getTimestamp(p2.first))
+                        return true;
+                    if (pers.getTimestamp(p1.first) >
+                            pers.getTimestamp(p2.first))
+                        return false;
+                    if (pers.getTimestamp(p1.second) <
+                            pers.getTimestamp(p2.second))
+                        return true;
 
-    for (auto pair : pairs) {
-        pers.getCorrespondingVoxelChain(pair, chain);
-        chain.clear();
-    }
+                    return false;
+              });
+
+    ASSERT_EQ(4, pairsSorted.size()) << "getPersistentPairs";
+
+    ASSERT_EQ(0, pers.getTimestamp(pairsSorted.at(0).first)) << "getTimestamp";
+    ASSERT_EQ(1, pers.getTimestamp(pairsSorted.at(0).second)) << "getTimestamp";
+    ASSERT_EQ(0, pers.getTimestamp(pairsSorted.at(1).first)) << "getTimestamp";
+    ASSERT_EQ(1, pers.getTimestamp(pairsSorted.at(1).second)) << "getTimestamp";
+    ASSERT_EQ(0, pers.getTimestamp(pairsSorted.at(2).first)) << "getTimestamp";
+    ASSERT_EQ(2, pers.getTimestamp(pairsSorted.at(2).second)) << "getTimestamp";
+    ASSERT_EQ(1, pers.getTimestamp(pairsSorted.at(3).first)) << "getTimestamp";
+    ASSERT_EQ(2, pers.getTimestamp(pairsSorted.at(3).second)) << "getTimestamp";
+
+    ASSERT_EQ(0, pers.getDimension(pairsSorted.at(0).first)) << "getDimension";
+    ASSERT_EQ(1, pers.getDimension(pairsSorted.at(0).second)) << "getDimension";
+    ASSERT_EQ(0, pers.getDimension(pairsSorted.at(1).first)) << "getDimension";
+    ASSERT_EQ(1, pers.getDimension(pairsSorted.at(1).second)) << "getDimension";
+    ASSERT_EQ(0, pers.getDimension(pairsSorted.at(2).first)) << "getDimension";
+    ASSERT_EQ(1, pers.getDimension(pairsSorted.at(2).second)) << "getDimension";
+    ASSERT_EQ(1, pers.getDimension(pairsSorted.at(3).first)) << "getDimension";
+    ASSERT_EQ(2, pers.getDimension(pairsSorted.at(3).second)) << "getDimension";
+
+    //Assert could return false if reduction method changes...
+    pers.getCorrespondingVoxelChain(pairsSorted.at(0), chain);
+    ASSERT_EQ(10, chain.size()) << "getCorrespondingVoxelChain";
+    chain.clear();
+    pers.getCorrespondingVoxelChain(pairsSorted.at(1), chain);
+    ASSERT_EQ(6, chain.size()) << "getCorrespondingVoxelChain";
+    chain.clear();
+    pers.getCorrespondingVoxelChain(pairsSorted.at(2), chain);
+    ASSERT_EQ(14, chain.size()) << "getCorrespondingVoxelChain";
+    chain.clear();
+    pers.getCorrespondingVoxelChain(pairsSorted.at(3), chain);
+    ASSERT_EQ(16, chain.size()) << "getCorrespondingVoxelChain";
 }
+

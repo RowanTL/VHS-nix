@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -27,8 +27,9 @@
 
 #include <vector>
 
-#include "AddableShape.h"
-#include "RemovableShape.h"
+#include "shape/AddableShape.h"
+#include "shape/RemovableShape.h"
+#include "shape/ShapeUtilities.h"
 
 namespace shape_simplification{ namespace shape {
 
@@ -40,17 +41,13 @@ template <class Voxel>
  * after instanciation.
  * @tparam Voxel Voxel class used by the shape.
  **/
-class EditableShape : public AddableShape<Voxel>, public RemovableShape<Voxel> {
+class EditableShape : public AddableShape<Voxel>, public RemovableShape<Voxel>
+{
 public:
     using AddableShape<Voxel>::isAddable;
     using AddableShape<Voxel>::addVoxel;
     using RemovableShape<Voxel>::isRemovable;
     using RemovableShape<Voxel>::removeVoxel;
-    using typename BaseShape<Voxel>::Level;
-    using BaseShape<Voxel>::CORE;
-    using BaseShape<Voxel>::MAIN_SHAPE;
-    using BaseShape<Voxel>::NEIGHBORHOOD;
-    using BaseShape<Voxel>::OUTSIDE;
     template <Level level>
     using neighbor_iterator =
         typename BaseShape<Voxel>::template neighbor_iterator<level>;
@@ -69,8 +66,7 @@ public:
      * @param minLevels The minimal level a voxel has to be inserted to.
      * The corresponding voxel is the one with same index in @p voxels.
      */
-    EditableShape(std::vector<Voxel> &voxels, std::vector<Level> &minLevels)
-        : BaseShape<Voxel>(voxels, minLevels) {}
+    EditableShape(std::vector<Voxel> &voxels) : BaseShape<Voxel>(voxels) {}
 };
 
 }} // namespace shape_simplification::shape

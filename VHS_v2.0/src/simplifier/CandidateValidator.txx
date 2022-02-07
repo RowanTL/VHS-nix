@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -43,9 +43,10 @@ CandidateValidator<AugmentedShape, Voxel>::verifyAdditiveCandidatesValidity(
     return _verifyCandidatesValidity(
                 candidates,
                 [this](
-                std::vector<voxel_container>& cur,
-                rem_candidate_container& rem
-                ){ return _chooseFirstComeFirstServedAdditiveValidCandidates(cur, rem); }
+                    std::vector<voxel_container>& cur,
+                    rem_candidate_container& rem
+                ){
+        return _chooseFirstComeFirstServedAdditiveValidCandidates(cur, rem); }
     );
 }
 
@@ -56,10 +57,12 @@ CandidateValidator<AugmentedShape, Voxel>::verifyAdditiveCandidatesValidityWithH
     return _verifyCandidatesValidity(
                 candidates,
                 [this](
-                std::vector<voxel_container>& cur,
-                rem_candidate_container& rem
+                    std::vector<voxel_container>& cur,
+                    rem_candidate_container& rem
                 ){
-        return _chooseFirstComeFirstServedAdditiveValidCandidatesWithH2Guarantee(cur, rem); }
+        return _chooseFirstComeFirstServedAdditiveValidCandidatesWithH2Guarantee(
+                    cur, rem);
+        }
     );
 }
 
@@ -70,9 +73,11 @@ CandidateValidator<AugmentedShape, Voxel>::verifySubstractiveCandidatesValidity(
     return _verifyCandidatesValidity(
                 candidates,
                 [this](
-                std::vector<voxel_container>& cur,
-                rem_candidate_container& rem
-                ){ return _chooseFirstComeFirstServedSubstractiveValidCandidates(cur, rem); }
+                    std::vector<voxel_container>& cur,
+                    rem_candidate_container& rem
+                ){
+        return _chooseFirstComeFirstServedSubstractiveValidCandidates(cur, rem);
+        }
     );
 }
 
@@ -83,10 +88,12 @@ CandidateValidator<AugmentedShape, Voxel>::verifySubstractiveCandidatesValidityW
     return _verifyCandidatesValidity(
                 candidates,
                 [this](
-                std::vector<voxel_container>& cur,
-                rem_candidate_container& rem
+                    std::vector<voxel_container>& cur,
+                    rem_candidate_container& rem
                 ){
-        return _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH2Guarantee(cur, rem); }
+        return _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH2Guarantee(
+                    cur, rem);
+        }
     );
 }
 
@@ -97,10 +104,12 @@ CandidateValidator<AugmentedShape, Voxel>::verifySubstractiveCandidatesValidityW
     return _verifyCandidatesValidity(
                 candidates,
                 [this](
-                std::vector<voxel_container>& cur,
-                rem_candidate_container& rem
+                    std::vector<voxel_container>& cur,
+                    rem_candidate_container& rem
                 ){
-        return _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH0Guarantee(cur, rem); }
+        return _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH0Guarantee(
+                    cur, rem);
+        }
     );
 }
 
@@ -111,10 +120,12 @@ CandidateValidator<AugmentedShape, Voxel>::verifySubstractiveCandidatesValidityW
     return _verifyCandidatesValidity(
                 candidates,
                 [this](
-                std::vector<voxel_container>& cur,
-                rem_candidate_container& rem
+                    std::vector<voxel_container>& cur,
+                    rem_candidate_container& rem
                 ){
-        return _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH0H2Guarantee(cur, rem); }
+        return _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH0H2Guarantee(
+                    cur, rem);
+        }
     );
 }
 
@@ -140,7 +151,8 @@ CandidateValidator<AugmentedShape, Voxel>::_verifyCandidatesValidity(
     currentMaxGroupSize = currentGroup.size();
 
     while (!remainingCandidates.empty()) {
-        currentMaxGroupSize = chooseValidCandidates(currentGroup, remainingCandidates);
+        currentMaxGroupSize = chooseValidCandidates(
+                    currentGroup, remainingCandidates);
         _retrieveNextGroupOfNonOverlappingCandidates(
                     currentGroup, currentMaxGroupSize, remainingCandidates);
         currentMaxGroupSize = currentGroup.size();
@@ -153,8 +165,10 @@ template <class AugmentedShape, class Voxel>
 void CandidateValidator<AugmentedShape, Voxel>::_retrieveFirstGroupOfNonOverlappingCandidates(
         const candidate_container& candidates,
         std::vector<voxel_container>& currentGroup,
-        rem_candidate_container& remainingCandidates) {
+        rem_candidate_container& remainingCandidates)
+{
     voxel_container region;
+    int x, y, z;
 
     for (voxel_container candidate : candidates) {
         remainingCandidates.insert(candidate);
@@ -168,7 +182,8 @@ void CandidateValidator<AugmentedShape, Voxel>::_retrieveFirstGroupOfNonOverlapp
             for (Voxel v : candidate) {
                 for (extended_neighbor_iterator<NEIGHBORHOOD> it(v, _shape);
                      !it.isEnd(); it.next()) {
-                    region.insert(it.getCurrentValue());
+                    it.getCurrentValue(x, y, z);
+                    region.insert(Voxel(x, y, z));
                 }
             }
         }
@@ -181,11 +196,12 @@ _chooseFirstComeFirstServedAdditiveValidCandidates(
         std::vector<voxel_container>& currentGroup,
         rem_candidate_container& remainingCandidates)
 {
+    int x, y, z;
+
     voxel_container bigSet;
     for (voxel_container candidate : currentGroup){
         for (Voxel v : candidate) bigSet.insert(v);
     }
-
     unsigned int res = _overlay.addVoxelsAndReturnH2Only(bigSet);
     if (_overlay.getInitialNumberOfVoids() < res) {
         if (currentGroup.size() == 1){
@@ -193,19 +209,23 @@ _chooseFirstComeFirstServedAdditiveValidCandidates(
         }
         int diff = res - _overlay.getInitialNumberOfVoids();
         unsigned int newSize = std::max(
-                    static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
+            static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
         return newSize;
     }
 
     for (voxel_container candidate : currentGroup) {
         _overlay.addVoxelsInMainShapeWithH2Guarantee(candidate);
         remainingCandidates.erase(candidate);
-
-        if (_overlay.getInitialNumberOfLoops() >= _overlay.getCurrentNumberOfLoops()) {
+        if (_overlay.getInitialNumberOfLoops() >= _overlay.getCurrentNumberOfLoops())
+        {
             for (Voxel v : candidate){
                 _validCandidates.insert(v);
-                for (ExtendedNeighborsIterator<Voxel> nIt(v); !nIt.isEnd(); nIt.next()){
-                    Voxel n = nIt.getCurrentValue();
+                for (ExtendedNeighborsIterator<Voxel> nIt(v);
+                     !nIt.isEnd();
+                     nIt.next())
+                {
+                    nIt.getCurrentValue(x, y, z);
+                    Voxel n(x, y, z);
                     if (candidate.find(n) == candidate.end())
                         _collar.insert(n);
                 }
@@ -223,6 +243,8 @@ _chooseFirstComeFirstServedAdditiveValidCandidatesWithH2Guarantee(
         std::vector<voxel_container>& currentGroup,
         rem_candidate_container& remainingCandidates)
 {
+    int x, y, z;
+
     for (voxel_container candidate : currentGroup) {
         _overlay.addVoxelsInMainShapeWithH2Guarantee(candidate);
         remainingCandidates.erase(candidate);
@@ -232,14 +254,18 @@ _chooseFirstComeFirstServedAdditiveValidCandidatesWithH2Guarantee(
             int diff = _overlay.getCurrentNumberOfLoops() -
                     _overlay.getInitialNumberOfLoops();
             unsigned int newSize = std::max(
-                        static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
+                static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
             return newSize;
         }
 
         for (Voxel v : candidate){
             _validCandidates.insert(v);
-            for (ExtendedNeighborsIterator<Voxel> nIt(v); !nIt.isEnd(); nIt.next()){
-                Voxel n = nIt.getCurrentValue();
+            for (ExtendedNeighborsIterator<Voxel> nIt(v);
+                 !nIt.isEnd();
+                 nIt.next())
+            {
+                nIt.getCurrentValue(x, y, z);
+                Voxel n(x, y, z);
                 if (candidate.find(n) == candidate.end())
                     _collar.insert(n);
             }
@@ -256,6 +282,8 @@ _chooseFirstComeFirstServedSubstractiveValidCandidates(
         std::vector<voxel_container>& currentGroup,
         rem_candidate_container& remainingCandidates)
 {
+    int x, y, z;
+
     voxel_container bigSet;
     for (voxel_container candidate : currentGroup){
         for (Voxel v : candidate) bigSet.insert(v);
@@ -267,24 +295,31 @@ _chooseFirstComeFirstServedSubstractiveValidCandidates(
         }
         int diff = res - _overlay.getInitialNumberOfComponents();
         unsigned int newSize = std::max(
-                    static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
+            static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
         return newSize;
     }
 
     for (voxel_container candidate : currentGroup) {
-        _overlay.removeVoxelsFromMainShapeWithH0Guarantee(candidate);
+        //_overlay.removeVoxelsFromMainShapeWithH0Guarantee(candidate);
+        _overlay.removeVoxelsFromMainShape(candidate);
         remainingCandidates.erase(candidate);
 
-        if (_overlay.getInitialNumberOfLoops() >= _overlay.getCurrentNumberOfLoops()) {
+        if (_overlay.getInitialNumberOfLoops() >= _overlay.getCurrentNumberOfLoops())
+        {
             for (Voxel v : candidate){
                 _validCandidates.insert(v);
-                for (ExtendedNeighborsIterator<Voxel> nIt(v); !nIt.isEnd(); nIt.next()){
-                    Voxel n = nIt.getCurrentValue();
+                for (ExtendedNeighborsIterator<Voxel> nIt(v);
+                     !nIt.isEnd();
+                     nIt.next())
+                {
+                    nIt.getCurrentValue(x, y, z);
+                    Voxel n(x, y, z);
                     if (candidate.find(n) == candidate.end())
                         _collar.insert(n);
                 }
             }
-            _overlay.saveRemovedVoxelsWithH0Guarantee(candidate);
+            //_overlay.saveRemovedVoxelsWithH0Guarantee(candidate);
+            _overlay.saveRemovedVoxels(candidate);
         }
     }
 
@@ -297,6 +332,8 @@ _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH2Guarantee(
         std::vector<voxel_container>& currentGroup,
         rem_candidate_container& remainingCandidates)
 {
+    int x, y, z;
+
     voxel_container bigSet;
     for (voxel_container candidate : currentGroup){
         for (Voxel v : candidate) bigSet.insert(v);
@@ -308,24 +345,31 @@ _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH2Guarantee(
         }
         int diff = res - _overlay.getInitialNumberOfComponents();
         unsigned int newSize = std::max(
-                    static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
+            static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
         return newSize;
     }
 
     for (voxel_container candidate : currentGroup) {
-        _overlay.removeVoxelsFromMainShapeWithH0H2Guarantee(candidate);
+        //_overlay.removeVoxelsFromMainShapeWithH0H2Guarantee(candidate);
+        _overlay.removeVoxelsFromMainShapeWithH2Guarantee(candidate);
         remainingCandidates.erase(candidate);
 
-        if (_overlay.getInitialNumberOfLoops() >= _overlay.getCurrentNumberOfLoops()) {
+        if (_overlay.getInitialNumberOfLoops() >= _overlay.getCurrentNumberOfLoops())
+        {
             for (Voxel v : candidate){
                 _validCandidates.insert(v);
-                for (ExtendedNeighborsIterator<Voxel> nIt(v); !nIt.isEnd(); nIt.next()){
-                    Voxel n = nIt.getCurrentValue();
+                for (ExtendedNeighborsIterator<Voxel> nIt(v);
+                     !nIt.isEnd();
+                     nIt.next())
+                {
+                    nIt.getCurrentValue(x, y, z);
+                    Voxel n(x, y, z);
                     if (candidate.find(n) == candidate.end())
                         _collar.insert(n);
                 }
             }
-            _overlay.saveRemovedVoxelsWithH0H2Guarantee(candidate);
+            //_overlay.saveRemovedVoxelsWithH0H2Guarantee(candidate);
+            _overlay.saveRemovedVoxelsWithH2Guarantee(candidate);
         }
     }
 
@@ -338,6 +382,8 @@ _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH0Guarantee(
         std::vector<voxel_container>& currentGroup,
         rem_candidate_container& remainingCandidates)
 {
+    int x, y, z;
+
     for (voxel_container candidate : currentGroup) {
         _overlay.removeVoxelsFromMainShapeWithH0Guarantee(candidate);
         remainingCandidates.erase(candidate);
@@ -347,14 +393,18 @@ _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH0Guarantee(
             int diff = _overlay.getCurrentNumberOfLoops() -
                     _overlay.getInitialNumberOfLoops();
             unsigned int newSize = std::max(
-                        static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
+                static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
             return newSize;
         }
 
         for (Voxel v : candidate){
             _validCandidates.insert(v);
-            for (ExtendedNeighborsIterator<Voxel> nIt(v); !nIt.isEnd(); nIt.next()){
-                Voxel n = nIt.getCurrentValue();
+            for (ExtendedNeighborsIterator<Voxel> nIt(v);
+                 !nIt.isEnd();
+                 nIt.next())
+            {
+                nIt.getCurrentValue(x, y, z);
+                Voxel n(x, y, z);
                 if (candidate.find(n) == candidate.end())
                     _collar.insert(n);
             }
@@ -371,6 +421,8 @@ _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH0H2Guarantee(
         std::vector<voxel_container>& currentGroup,
         rem_candidate_container& remainingCandidates)
 {
+    int x, y, z;
+
     for (voxel_container candidate : currentGroup) {
         _overlay.removeVoxelsFromMainShapeWithH0H2Guarantee(candidate);
         remainingCandidates.erase(candidate);
@@ -380,14 +432,18 @@ _chooseFirstComeFirstServedSubstractiveValidCandidatesWithH0H2Guarantee(
             int diff = _overlay.getCurrentNumberOfLoops() -
                     _overlay.getInitialNumberOfLoops();
             unsigned int newSize = std::max(
-                        static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
+                static_cast<unsigned int>(currentGroup.size() / (diff + 1)), 1U);
             return newSize;
         }
 
         for (Voxel v : candidate){
             _validCandidates.insert(v);
-            for (ExtendedNeighborsIterator<Voxel> nIt(v); !nIt.isEnd(); nIt.next()){
-                Voxel n = nIt.getCurrentValue();
+            for (ExtendedNeighborsIterator<Voxel> nIt(v);
+                 !nIt.isEnd();
+                 nIt.next())
+            {
+                nIt.getCurrentValue(x, y, z);
+                Voxel n(x, y, z);
                 if (candidate.find(n) == candidate.end())
                     _collar.insert(n);
             }
@@ -405,6 +461,7 @@ _retrieveNextGroupOfNonOverlappingCandidates(
         unsigned int currentMaxGroupSize,
         rem_candidate_container& remainingCandidates)
 {
+    int x, y, z;
     voxel_container region;
     currentGroup.clear();
 
@@ -433,7 +490,8 @@ _retrieveNextGroupOfNonOverlappingCandidates(
             for (Voxel v : candidate) {
                 for (extended_neighbor_iterator<NEIGHBORHOOD> it(v, _shape);
                      !it.isEnd(); it.next()) {
-                    region.insert(it.getCurrentValue());
+                    it.getCurrentValue(x, y, z);
+                    region.insert(Voxel(x, y, z));
                 }
             }
             ++it;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -39,7 +39,7 @@ BaseImageStack::~BaseImageStack() {}
 void BaseImageStack::load(std::string baseFilename,
                           unsigned int numberOfImages)
 {
-    for (unsigned int i = 0; i < numberOfImages; i++) {
+    for (int i = numberOfImages - 1; i >= 0; i--) {
         std::string filename = baseFilename;
         if (i < 10)
             filename += "000";
@@ -58,11 +58,58 @@ void BaseImageStack::load(std::string baseFilename,
     _dim[2] = numberOfImages;
 }
 
+void BaseImageStack::load(std::vector<png::image<png::gray_pixel> > &images)
+{
+    _stack = images;
+
+    _dim[0] = _stack[0].get_width();
+    _dim[1] = _stack[1].get_height();
+    _dim[2] = images.size();
+}
+
+void BaseImageStack::save(std::string baseFilename)
+{
+    for (int i = _dim[2] - 1; i >= 0; i--) {
+        std::string filename = baseFilename;
+        if (i < 10)
+            filename += "000";
+        else if (i < 100)
+            filename += "00";
+        else if (i < 1000)
+            filename += "0";
+        filename += std::to_string(i) + ".png";
+
+        _stack.at(i).write(filename);
+    }
+}
+
+void BaseImageStack::addEmptyLayer()
+{
+    png::image<png::gray_pixel> image(_dim[0], _dim[1]);
+    _stack.push_back(image);
+    _dim[2]++;
+}
+
+void BaseImageStack::removeTopLayer()
+{
+    _stack.pop_back();
+    _dim[2]--;
+}
+
+
 unsigned char BaseImageStack::getValue(unsigned int x,
                                        unsigned int y,
                                        unsigned int z) const
 {
     return _stack[z][y][x];
+}
+
+void BaseImageStack::setValue(unsigned char value,
+                              unsigned int x,
+                              unsigned int y,
+                              unsigned int z)
+{
+    _stack[z][y][x] = value;
 }
 
 const std::array<unsigned int, 3> &BaseImageStack::getDimensions() const
@@ -112,6 +159,14 @@ void BaseImageStack::setCoreThreshold(unsigned char value)
 void BaseImageStack::clear()
 {
     _stack.clear();
+}
+
+bool BaseImageStack::isWithinBounds(unsigned int x,
+                                    unsigned int y,
+                                    unsigned int z){
+    return x >= 0 && x < _dim[0] &&
+            y >= 0 && y < _dim[1] &&
+            z >= 0 && z < _dim[2];
 }
 
 } // namespace shape_simplification::util

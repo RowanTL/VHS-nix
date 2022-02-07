@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -35,32 +35,37 @@ InvertedRestrictedShapeCopy<Shape, Voxel>::InvertedRestrictedShapeCopy(
         Point &upperBound)
     : BaseShape<Voxel>(), _lowerBound(lowerBound), _upperBound(upperBound)
 {
+    int x, y, z;
     std::array<voxel_container, 3> &voxels = BaseShape<Voxel>::_getVoxels();
     for (auto it = shape.template begin<NEIGHBORHOOD>();
          it != shape.template end<NEIGHBORHOOD>();
          ++it)
     {
         Voxel v = *it;
+        Level l = v.getLevel();
         if (_isWithinBounds(v)) {
-            if (shape.template contains<NEIGHBORHOOD>(v)
-                    && !shape.template contains<MAIN_SHAPE>(v)) {
+            if (l == NEIGHBORHOOD) {
+                v.setLevel(MAIN_SHAPE);
                 voxels.at(1).insert(v);
                 voxels.at(2).insert(v);
-            } else if (shape.template contains<MAIN_SHAPE>(v)
-                       && !shape.template contains<CORE>(v)) {
+            } else if (l == MAIN_SHAPE) {
+                v.setLevel(NEIGHBORHOOD);
                 voxels.at(2).insert(v);
             }
-            for (ExtendedNeighborsInIterator<Shape, Voxel, OUTSIDE> it(v, shape);
+            v.setLevel(l);
+            for (ExtendedNeighborsInIterator<Shape,Voxel,OUTSIDE> it(v, shape);
                  !it.isEnd();
                  it.next()){
-                Voxel cur = it.getCurrentValue();
+                it.getCurrentValue(x, y, z);
+                Voxel cur(x, y, z);
+                cur.setLevel(CORE);
                 voxels.at(0).insert(cur);
                 voxels.at(1).insert(cur);
                 voxels.at(2).insert(cur);
                 _updateDimensions(cur);
             }
 
-            _updateDimensions(v);
+            if (l != CORE) _updateDimensions(v);
         }
     }
 }

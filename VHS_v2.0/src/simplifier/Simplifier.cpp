@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -18,6 +18,11 @@
  * along with VHS. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * @file Simplifier.cpp
+ * Contains the implementation of the methods in the \ref Simplifier class.
+ **/
+
 #include "Simplifier.h"
 
 namespace shape_simplification::simplifier {
@@ -28,7 +33,7 @@ Simplifier::Simplifier(bool silence) : _silent(silence)
 Simplifier::~Simplifier()
 {}
 
-void Simplifier::loadPreprocessedImage(ImageData &data)
+void Simplifier::loadPreprocessedImage(ImageData &data, bool pseudovoids)
 {
     ProcessedImageStack proc;
     _shape.clear();
@@ -42,6 +47,20 @@ void Simplifier::loadPreprocessedImage(ImageData &data)
     proc.setNeighborhoodThreshold(data.neighborhoodThreshold);
 
     _printAndResetTime("Image load time:");
+
+    if (pseudovoids){
+        _printMessage("--Fill pseudo-voids.");
+
+        DistancePseudoVoidsCreator pvf(proc, 0, _silent);
+
+        pvf.closeTop();
+        pvf.createPseudoVoids();
+        pvf.fillVoids();
+        pvf.removeTop();
+
+        _resetTimer();
+    }
+
     _printMessage("--Load shape.");
 
     proc >> _shape;
@@ -135,30 +154,25 @@ void Simplifier::simplify(unsigned int boxWidth,
 
     _printParameterData(ccSize, "Standard Simplification");
 
-    AdditiveH0CandidateGenerator<AugShape,Voxel> ah0(_shape);
-    AdditiveH1CandidateGenerator<AugShape,Voxel> ah1(_shape);
-    AdditiveH2CandidateGenerator<AugShape,Voxel> ah2(_shape);
-    SubstractiveH0CandidateGenerator<AugShape,Voxel> sh0(_shape);
-    SubstractiveH1CandidateGenerator<AugShape,Voxel> sh1(_shape);
-    SubstractiveH2CandidateGenerator<AugShape,Voxel> sh2(_shape);
+    AdditiveCandidateGenerator<AugShape,Voxel> ah(_shape);
+    SubstractiveCandidateGenerator<AugShape,Voxel> sh(_shape);
     CandidateValidator<AugShape,Voxel> val(_shape);
 
-    lower_point_container ah0LowerPoints, ah1LowerPoints,
-            sh1LowerPoints, sh2LowerPoints;
-    _computeInitialLowerPoints(ah0LowerPoints);
-    _computeInitialLowerPoints(ah1LowerPoints);
-    _computeInitialLowerPoints(sh1LowerPoints);
-    _computeInitialLowerPoints(sh2LowerPoints);
+    lower_point_container ahLowerPoints, shLowerPoints;
+    _computeInitialLowerPoints(ahLowerPoints);
+    _computeInitialLowerPoints(shLowerPoints);
 
     _resetTimer();
 
     // Void filling. Validation can be skipped.
-    _applyAdditiveSimplification(ah2.generateVoidFillings());
-    _printAndResetTime("Void filling time:");
+    if (_shape.getNumberOfVoids() > _minNumberOfVoids){
+        _applyAdditiveSimplification(ah.generateVoidFillings());
+        _printAndResetTime("Void filling time:");
+    }
 
     // Component removal. Validation can be skipped.
     _applySubstractiveSimplification(
-                sh0.generateSubstractibleComponents(ccSize)
+                sh.generateSubstractibleComponents(ccSize)
                 );
     _printTime("Remove Connected Component time:");
     printShapeData();
@@ -167,30 +181,22 @@ void Simplifier::simplify(unsigned int boxWidth,
     // One Voxel candidates.
     while (_applyAdditiveSimplification(
                val.verifyAdditiveCandidatesValidity(
-                   ah0.generateOneVoxelCandidates()
+                   ah.generateH0OneVoxelCandidates()
                    )));
-    _printTime("AddH0 one voxel time:");
+    _printTime("One voxel time:");
     printShapeData();
     _resetTimer();
 
     // Persistence candidates.
-    bool ah0Changed = true;
-    bool ah1Changed = true;
-    bool sh1Changed = true;
-    bool sh2Changed = true;
-    while (ah1Changed || ah0Changed || sh1Changed || sh2Changed) {
-        if (ah0Changed)
-            ah0Changed = _simplifyH0WithAdditions(
-                        ah0, val, ah0LowerPoints);
-        if (ah1Changed)
-            ah1Changed = _simplifyH1WithAdditions(
-                        ah1, val, ah1LowerPoints);
-        if (sh2Changed)
-            sh2Changed = _simplifyH2WithSubstractions(
-                        sh2, val, sh2LowerPoints);
-        if (sh1Changed)
-            sh1Changed = _simplifyH1WithSubstractions(
-                        sh1, val, sh1LowerPoints);
+    bool ahChanged = true;
+    bool shChanged = true;
+    while (ahChanged || shChanged) {
+        if (ahChanged)
+            ahChanged = _simplifyWithAdditions(
+                        ah, val, ahLowerPoints);
+        if (shChanged)
+            shChanged = _simplifyWithSubstractions(
+                        sh, val, shLowerPoints);
     }
 
     _printTime("Persistence time:");
@@ -209,30 +215,25 @@ void Simplifier::simplifyWithSubFirst(unsigned int boxWidth,
 
     _printParameterData(ccSize, "Standard Simplification");
 
-    AdditiveH0CandidateGenerator<AugShape,Voxel> ah0(_shape);
-    AdditiveH1CandidateGenerator<AugShape,Voxel> ah1(_shape);
-    AdditiveH2CandidateGenerator<AugShape,Voxel> ah2(_shape);
-    SubstractiveH0CandidateGenerator<AugShape,Voxel> sh0(_shape);
-    SubstractiveH1CandidateGenerator<AugShape,Voxel> sh1(_shape);
-    SubstractiveH2CandidateGenerator<AugShape,Voxel> sh2(_shape);
+    AdditiveCandidateGenerator<AugShape,Voxel> ah(_shape);
+    SubstractiveCandidateGenerator<AugShape,Voxel> sh(_shape);
     CandidateValidator<AugShape,Voxel> val(_shape);
 
-    lower_point_container ah0LowerPoints, ah1LowerPoints,
-            sh1LowerPoints, sh2LowerPoints;
-    _computeInitialLowerPoints(ah0LowerPoints);
-    _computeInitialLowerPoints(ah1LowerPoints);
-    _computeInitialLowerPoints(sh1LowerPoints);
-    _computeInitialLowerPoints(sh2LowerPoints);
+    lower_point_container ahLowerPoints, shLowerPoints;
+    _computeInitialLowerPoints(ahLowerPoints);
+    _computeInitialLowerPoints(shLowerPoints);
 
     _resetTimer();
 
     // Void filling. Validation can be skipped.
-    _applyAdditiveSimplification(ah2.generateVoidFillings());
-    _printAndResetTime("Void filling time:");
+    if (_shape.getNumberOfVoids() > _minNumberOfVoids){
+        _applyAdditiveSimplification(ah.generateVoidFillings());
+        _printAndResetTime("Void filling time:");
+    }
 
     // Component removal. Validation can be skipped.
     _applySubstractiveSimplification(
-                sh0.generateSubstractibleComponents(ccSize)
+                sh.generateSubstractibleComponents(ccSize)
                 );
     _printTime("Remove Connected Component time:");
     printShapeData();
@@ -241,30 +242,22 @@ void Simplifier::simplifyWithSubFirst(unsigned int boxWidth,
     // One Voxel candidates.
     while (_applyAdditiveSimplification(
                val.verifyAdditiveCandidatesValidity(
-                   ah0.generateOneVoxelCandidates()
+                   ah.generateH0OneVoxelCandidates()
                    )));
-    _printTime("AddH0 one voxel time:");
+    _printTime("One voxel time:");
     printShapeData();
     _resetTimer();
 
     // Persistence candidates.
-    bool ah0Changed = true;
-    bool ah1Changed = true;
-    bool sh1Changed = true;
-    bool sh2Changed = true;
-    while (ah1Changed || ah0Changed || sh1Changed || sh2Changed) {
-        if (sh2Changed)
-            sh2Changed = _simplifyH2WithSubstractions(
-                        sh2, val, sh2LowerPoints);
-        if (sh1Changed)
-            sh1Changed = _simplifyH1WithSubstractions(
-                        sh1, val, sh1LowerPoints);
-        if (ah0Changed)
-            ah0Changed = _simplifyH0WithAdditions(
-                        ah0, val, ah0LowerPoints);
-        if (ah1Changed)
-            ah1Changed = _simplifyH1WithAdditions(
-                        ah1, val, ah1LowerPoints);
+    bool ahChanged = true;
+    bool shChanged = true;
+    while (ahChanged || shChanged) {
+        if (shChanged)
+            shChanged = _simplifyWithSubstractions(
+                        sh, val, shLowerPoints);
+        if (ahChanged)
+            ahChanged = _simplifyWithAdditions(
+                        ah, val, ahLowerPoints);
     }
 
     _printTime("Persistence time:");
@@ -278,42 +271,35 @@ void Simplifier::simplifyOnlyAdditively(unsigned int boxWidth, bool noover){
 
     _printParameterData("Additions Only Simplification");
 
-    AdditiveH0CandidateGenerator<AugShape,Voxel> ah0(_shape);
-    AdditiveH1CandidateGenerator<AugShape,Voxel> ah1(_shape);
-    AdditiveH2CandidateGenerator<AugShape,Voxel> ah2(_shape);
+    AdditiveCandidateGenerator<AugShape,Voxel> ah(_shape);
     CandidateValidator<AugShape,Voxel> val(_shape);
 
-    lower_point_container ah0LowerPoints, ah1LowerPoints;
-    _computeInitialLowerPoints(ah0LowerPoints);
-    _computeInitialLowerPoints(ah1LowerPoints);
+    lower_point_container ahLowerPoints;
+    _computeInitialLowerPoints(ahLowerPoints);
 
     _resetTimer();
 
     // Void filling. Validation can be skipped.
-    _applyAdditiveSimplification(ah2.generateVoidFillings());
-    _printTime("Void filling time:");
-    printShapeData();
-    _resetTimer();
+    if (_shape.getNumberOfVoids() > _minNumberOfVoids){
+        _applyAdditiveSimplification(ah.generateVoidFillings());
+        _printAndResetTime("Void filling time:");
+    }
 
     // One Voxel candidates.
     while (_applyAdditiveSimplification(
                val.verifyAdditiveCandidatesValidity(
-                   ah0.generateOneVoxelCandidates()
+                   ah.generateH0OneVoxelCandidates()
                    )));
-    _printTime("AddH0 one voxel time:");
+    _printTime("One voxel time:");
     printShapeData();
     _resetTimer();
 
     // Persistence candidates.
-    bool ah0Changed = true;
-    bool ah1Changed = true;
-    while (ah1Changed || ah0Changed) {
-        if (ah0Changed)
-            ah0Changed = _simplifyH0WithAdditions(
-                        ah0, val, ah0LowerPoints);
-        if (ah1Changed)
-            ah1Changed = _simplifyH1WithAdditions(
-                        ah1, val, ah1LowerPoints);
+    bool ahChanged = true;
+    while (ahChanged) {
+        if (ahChanged)
+            ahChanged = _simplifyWithAdditions(
+                        ah, val, ahLowerPoints);
     }
 
     _printTime("Persistence time:");
@@ -330,35 +316,28 @@ void Simplifier::simplifyOnlySubstractively(unsigned int boxWidth,
 
     _printParameterData(ccSize, "Substractions Only Simplification");
 
-    SubstractiveH0CandidateGenerator<AugShape,Voxel> sh0(_shape);
-    SubstractiveH1CandidateGenerator<AugShape,Voxel> sh1(_shape);
-    SubstractiveH2CandidateGenerator<AugShape,Voxel> sh2(_shape);
+    SubstractiveCandidateGenerator<AugShape,Voxel> sh(_shape);
     CandidateValidator<AugShape,Voxel> val(_shape);
 
-    lower_point_container sh1LowerPoints, sh2LowerPoints;
-    _computeInitialLowerPoints(sh1LowerPoints);
-    _computeInitialLowerPoints(sh2LowerPoints);
+    lower_point_container shLowerPoints;
+    _computeInitialLowerPoints(shLowerPoints);
 
     _resetTimer();
 
     // Component removal. Validation can be skipped.
     _applySubstractiveSimplification(
-                sh0.generateSubstractibleComponents(ccSize)
+                sh.generateSubstractibleComponents(ccSize)
                 );
     _printTime("Remove Connected Component time:");
     printShapeData();
     _resetTimer();
 
     // Persistence candidates.
-    bool sh1Changed = true;
-    bool sh2Changed = true;
-    while (sh1Changed || sh2Changed) {
-        if (sh2Changed)
-            sh2Changed = _simplifyH2WithSubstractions(
-                        sh2, val, sh2LowerPoints);
-        if (sh1Changed)
-            sh1Changed = _simplifyH1WithSubstractions(
-                        sh1, val, sh1LowerPoints);
+    bool shChanged = true;
+    while (shChanged) {
+        if (shChanged)
+            shChanged = _simplifyWithSubstractions(
+                        sh, val, shLowerPoints);
     }
 
     _printTime("Persistence time:");
@@ -394,14 +373,15 @@ void Simplifier::printShapeData(){
     std::cout << "\n";
 }
 
-bool Simplifier::_simplifyH0WithAdditions(
-        AdditiveH0CandidateGenerator<AugShape, Voxel>& gen,
+bool Simplifier::_simplifyWithAdditions(
+        AdditiveCandidateGenerator<AugShape, Voxel>& gen,
         CandidateValidator<AugShape,Voxel>& val,
         lower_point_container& lowerPoints)
 {
-    _printMessage("__positive H0");
+    _printMessage("__ah");
 
-    if (_shape.getNumberOfComponents() <= _minNumberOfComponents)
+    if (_shape.getNumberOfComponents() <= _minNumberOfComponents &&
+            _shape.getNumberOfLoops() <= _minNumberOfLoops)
         return false;
 
     bool changed = _applyAdditiveSimplification(
@@ -415,37 +395,15 @@ bool Simplifier::_simplifyH0WithAdditions(
     return changed;
 }
 
-
-bool Simplifier::_simplifyH1WithAdditions(
-        AdditiveH1CandidateGenerator<AugShape, Voxel>& gen,
+bool Simplifier::_simplifyWithSubstractions(
+        SubstractiveCandidateGenerator<AugShape, Voxel>& gen,
         CandidateValidator<AugShape,Voxel>& val,
         lower_point_container& lowerPoints)
 {
-    _printMessage("__positive H1");
+    _printMessage("__sh");
 
-    if (_shape.getNumberOfLoops() <= _minNumberOfLoops)
-        return false;
-
-    bool changed = _applyAdditiveSimplification(
-                val.verifyAdditiveCandidatesValidity(
-                    gen.template generatePeristenceCandidates<RestrShape>(
-                        _boxWidth, lowerPoints, _silent)),
-                lowerPoints);
-
-    printShapeData();
-
-    return changed;
-}
-
-
-bool Simplifier::_simplifyH1WithSubstractions(
-        SubstractiveH1CandidateGenerator<AugShape, Voxel>& gen,
-        CandidateValidator<AugShape,Voxel>& val,
-        lower_point_container& lowerPoints)
-{
-    _printMessage("__negative H1");
-
-    if (_shape.getNumberOfLoops() <= _minNumberOfLoops)
+    if (_shape.getNumberOfLoops() <= _minNumberOfLoops &&
+            _shape.getNumberOfVoids() <= _minNumberOfVoids)
         return false;
 
     bool changed;
@@ -469,35 +427,13 @@ bool Simplifier::_simplifyH1WithSubstractions(
     return changed;
 }
 
-
-bool Simplifier::_simplifyH2WithSubstractions(
-        SubstractiveH2CandidateGenerator<AugShape, Voxel>& gen,
-        CandidateValidator<AugShape,Voxel>& val,
-        lower_point_container& lowerPoints)
-{
-    _printMessage("__negative H2");
-
-    if (_shape.getNumberOfVoids() <= _minNumberOfVoids)
-        return false;
-
-    bool changed = _applySubstractiveSimplification(
-                val.verifySubstractiveCandidatesValidity(
-                    gen.template generatePeristenceCandidates<InvRestrShape>(
-                        _boxWidth, lowerPoints, _silent)),
-                lowerPoints);
-
-    printShapeData();
-
-    return changed;
-}
-
 bool Simplifier::_applyAdditiveSimplification(
         const valid_candidate_container& voxels)
 {
     if (voxels.size() == 0) return false;
 
     for (Voxel v : voxels){
-        _shape.addVoxel<AugShape::CORE>(v);
+        _shape.addVoxel<CORE>(v);
     }
 
     return true;
@@ -508,9 +444,9 @@ bool Simplifier::_applyAdditiveSimplification(
 {
     if (voxelSets.size() == 0) return false;
 
-    for (auto set : voxelSets){
+    for (auto &set : voxelSets){
         for (Voxel v : set){
-            _shape.addVoxel<AugShape::CORE>(v);
+            _shape.addVoxel<CORE>(v);
         }
     }
 
@@ -525,7 +461,7 @@ bool Simplifier::_applyAdditiveSimplification(
     if (voxels.size() == 0) return false;
 
     for (Voxel v : voxels){
-        _shape.addVoxel<AugShape::CORE>(v);
+        _shape.addVoxel<CORE>(v);
         _getCorrespondingLowerPoints(v, currentLP);
     }
 
@@ -539,9 +475,9 @@ bool Simplifier::_applyAdditiveSimplification(
     currentLP.clear();
     if (voxelSets.size() == 0) return false;
 
-    for (auto set : voxelSets){
+    for (auto &set : voxelSets){
         for (Voxel v : set){
-            _shape.addVoxel<AugShape::CORE>(v);
+            _shape.addVoxel<CORE>(v);
             _getCorrespondingLowerPoints(v, currentLP);
         }
     }
@@ -555,7 +491,7 @@ bool Simplifier::_applySubstractiveSimplification(
     if (voxels.size() == 0) return false;
 
     for (Voxel v : voxels){
-        _shape.removeVoxel<AugShape::NEIGHBORHOOD>(v);
+        _shape.removeVoxel<NEIGHBORHOOD>(v);
     }
 
     return true;
@@ -566,9 +502,9 @@ bool Simplifier::_applySubstractiveSimplification(
 {
     if (voxelSets.size() == 0) return false;
 
-    for (auto set : voxelSets){
+    for (auto &set : voxelSets){
         for (Voxel v : set){
-            _shape.removeVoxel<AugShape::NEIGHBORHOOD>(v);
+            _shape.removeVoxel<NEIGHBORHOOD>(v);
         }
     }
 
@@ -583,7 +519,7 @@ bool Simplifier::_applySubstractiveSimplification(
     if (voxels.size() == 0) return false;
 
     for (Voxel v : voxels){
-        _shape.removeVoxel<AugShape::NEIGHBORHOOD>(v);
+        _shape.removeVoxel<NEIGHBORHOOD>(v);
         _getCorrespondingLowerPoints(v, currentLP);
     }
 
@@ -597,9 +533,9 @@ bool Simplifier::_applySubstractiveSimplification(
     currentLP.clear();
     if (voxelSets.size() == 0) return false;
 
-    for (auto set : voxelSets){
+    for (auto &set : voxelSets){
         for (Voxel v : set){
-            _shape.removeVoxel<AugShape::NEIGHBORHOOD>(v);
+            _shape.removeVoxel<NEIGHBORHOOD>(v);
             _getCorrespondingLowerPoints(v, currentLP);
         }
     }
@@ -613,23 +549,31 @@ void Simplifier::_computeInitialLowerPoints(lower_point_container& lowerPoints){
     if (_noover) shift = _boxWidth;
     else shift = _boxWidth / 2;
 
-    for (lower[0] = 0; lower[0] <= _maxCoordinate[0]; lower[0] += shift) {
-        for (lower[1] = 0; lower[1] <= _maxCoordinate[1]; lower[1] += shift) {
-            for (lower[2] = 0; lower[2] <= _maxCoordinate[2]; lower[2] += shift) {
+    for (lower[0] = 0; lower[0] <= _maxCoordinate[0]; lower[0] += shift)
+    {
+        for (lower[1] = 0; lower[1] <= _maxCoordinate[1]; lower[1] += shift)
+        {
+            for (lower[2] = 0; lower[2] <= _maxCoordinate[2]; lower[2] += shift)
+            {
                 lowerPoints.insert(lower);
             }
         }
     }
 }
 
-void Simplifier::_getCorrespondingLowerPoints(Voxel v, lower_point_container& points){
+void Simplifier::_getCorrespondingLowerPoints(
+        Voxel v, lower_point_container& points)
+{
     int shift;
     if (_noover) shift = _boxWidth;
     else shift = _boxWidth / 2;
 
-    int x = std::floor(static_cast<double>(v[0]) / static_cast<double>(shift)) * shift;
-    int y = std::floor(static_cast<double>(v[1]) / static_cast<double>(shift)) * shift;
-    int z = std::floor(static_cast<double>(v[2]) / static_cast<double>(shift)) * shift;
+    int x = std::floor(static_cast<double>(v[0]) / static_cast<double>(shift))
+            * shift;
+    int y = std::floor(static_cast<double>(v[1]) / static_cast<double>(shift))
+            * shift;
+    int z = std::floor(static_cast<double>(v[2]) / static_cast<double>(shift))
+            * shift;
     points.insert(Point({x, y, z}));
 
     if (!_noover){
@@ -637,15 +581,19 @@ void Simplifier::_getCorrespondingLowerPoints(Voxel v, lower_point_container& po
             points.insert(Point({x - shift, y, z}));
             if (y - shift >= 0){
                 points.insert(Point({x - shift, y - shift, z}));
-                if (z - shift >= 0) points.insert(Point({x - shift, y - shift, z - shift}));
+                if (z - shift >= 0)
+                    points.insert(Point({x - shift, y - shift, z - shift}));
             }
-            if (z - shift >= 0) points.insert(Point({x - shift, y, z - shift}));
+            if (z - shift >= 0)
+                points.insert(Point({x - shift, y, z - shift}));
         }
         if (y - shift >= 0){
             points.insert(Point({x, y - shift, z}));
-            if (z - shift >= 0) points.insert(Point({x, y - shift, z - shift}));
+            if (z - shift >= 0)
+                points.insert(Point({x, y - shift, z - shift}));
         }
-        if (z - shift >= 0) points.insert(Point({x, y, z - shift}));
+        if (z - shift >= 0)
+            points.insert(Point({x, y, z - shift}));
     }
 }
 

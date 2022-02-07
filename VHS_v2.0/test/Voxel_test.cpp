@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -23,71 +23,83 @@
  * Test file for the Voxel classes.
  **/
 
-#include <algorithm>
 #include <gtest/gtest.h>
 #include <random>
 
 #include "shape/Voxel.h"
+#include "shape/ShapeUtilities.h"
 #include "util/Point.h"
 
-using shape_simplification::shape::Point;
 using shape_simplification::shape::Voxel;
+using shape_simplification::shape::Level;
+using shape_simplification::util::Point;
 
-TEST(VoxelTest, CoordinateAgreement) {
-    std::mt19937 randomGenerator(0);
+TEST(VoxelTest, Constructor) {
+    std::mt19937 randomGenerator(0); // Repeatable seed
     std::uniform_int_distribution<int> uniform(0, 65535);
 
-    for (int repetition = 0; repetition < 100000; repetition++) {
+    for (int repetition = 0; repetition < 1000; repetition++) {
         Point p;
         for (unsigned int coord = 0; coord < 3; coord++)
             p[coord] = uniform(randomGenerator);
 
         Voxel voxel1(p);
-        Voxel voxel2(p[0], p[1], p[2]);
+        Voxel voxel2(p[0], p[1], p[2], Level::MAIN_SHAPE);
 
-        for (int coord = 0; coord < 3; coord++) {
-            ASSERT_EQ(p[static_cast<unsigned int>(coord)], voxel1[coord])
-                    << p[0] << " " << p[1] << " " << p[2] << " : " << voxel1[0] << " "
-                            << voxel1[1] << " " << voxel1[2];
-            ASSERT_EQ(p[static_cast<unsigned int>(coord)], voxel2[coord])
-                    << p[0] << " " << p[1] << " " << p[2] << " : " << voxel2[0] << " "
-                            << voxel2[1] << " " << voxel2[2];
-        }
-        ASSERT_EQ(static_cast<uint64_t>(p[0]) +
-                (static_cast<uint64_t>(p[1]) << 17U) +
-                (static_cast<uint64_t>(p[2]) << 34U),
-                voxel1.rawData())
-                << p[0] << " " << p[1] << " " << p[2] << " : " << voxel1[0] << " "
-                        << voxel1[1] << " " << voxel1[2];
-        ASSERT_EQ(static_cast<uint64_t>(p[0]) +
-                (static_cast<uint64_t>(p[1]) << 17U) +
-                (static_cast<uint64_t>(p[2]) << 34U),
-                voxel2.rawData())
-                << p[0] << " " << p[1] << " " << p[2] << " : " << voxel2[0] << " "
-                        << voxel2[1] << " " << voxel2[2];
-    }
-}
-
-TEST(VoxelTest, LessThanOperator) {
-    std::mt19937 randomGenerator(0);
-    std::uniform_int_distribution<int> uniform(0, 255);
-
-    for (int repetition = 0; repetition < 100000; repetition++) {
-        Point p1;
-        Point p2;
         for (unsigned int coord = 0; coord < 3; coord++) {
-            p1[coord] = uniform(randomGenerator);
-            p2[coord] = uniform(randomGenerator);
+            ASSERT_EQ(p[coord], voxel1[coord])
+                    << p[0] << " " << p[1] << " " << p[2] << " : " << voxel1;
+            ASSERT_EQ(p[coord], voxel2[coord])
+                    << p[0] << " " << p[1] << " " << p[2] << " : " << voxel2;
         }
 
-        Voxel voxel1(p1);
-        Voxel voxel2(p2);
+        ASSERT_EQ(Level::NOT_SPECIFIED, voxel1.getLevel()) << "getLevel()";
+        ASSERT_EQ(Level::MAIN_SHAPE, voxel2.getLevel()) << "getLevel()";
 
-        ASSERT_EQ(p1[2] < p2[2] || (p1[2] == p2[2] && p1[1] < p2[1]) ||
-                (p1[2] == p2[2] && p1[1] == p2[1] && p1[0] < p2[0]),
-                voxel1 < voxel2)
-                << "p1 " << p1[0] << " " << p1[1] << " " << p1[2] << " : p2 " << p2[0]
-                << " " << p2[1] << " " << p2[2] << " : voxel1 " << voxel1.rawData()
-                << " : voxel2 " << voxel2.rawData();
+        voxel1.setLevel(Level::CORE);
+        voxel2.setLevel(Level::NEIGHBORHOOD);
+
+        ASSERT_EQ(Level::CORE, voxel1.getLevel()) << "setLevel()";
+        ASSERT_EQ(Level::NEIGHBORHOOD, voxel2.getLevel()) << "setLevel()";
+
+        ASSERT_EQ(65536, voxel1.getMaxCoordinateValue())
+                << "getMaxCoordinateValue()";
+        ASSERT_EQ(65536, voxel2.getMaxCoordinateValue())
+                << "getMaxCoordinateValue()";
     }
 }
+
+TEST(VoxelTest, Comparators) {
+    Voxel v1(2, 3, 4, Level::NEIGHBORHOOD);
+    Voxel v2(2, 3, 4, Level::MAIN_SHAPE);
+
+    ASSERT_TRUE(v1 == v2) << "==";
+    ASSERT_FALSE(v1 != v2) << "!=";
+    ASSERT_FALSE(v1 < v2) << "<";
+    ASSERT_FALSE(v2 < v1) << "<";
+
+    Voxel v3(2, 3, 5, Level::MAIN_SHAPE);
+    Voxel v4(2, 3, 4, Level::MAIN_SHAPE);
+
+    ASSERT_FALSE(v3 == v4) << "==";
+    ASSERT_TRUE(v3 != v4) << "!=";
+    ASSERT_FALSE(v3 < v4) << "<";
+    ASSERT_TRUE(v4 < v3) << "<";
+
+    Voxel v5(2, 4, 4, Level::MAIN_SHAPE);
+    Voxel v6(2, 3, 4, Level::MAIN_SHAPE);
+
+    ASSERT_FALSE(v5 == v6) << "==";
+    ASSERT_TRUE(v5 != v6) << "!=";
+    ASSERT_FALSE(v5 < v6) << "<";
+    ASSERT_TRUE(v6 < v5) << "<";
+
+    Voxel v7(3, 3, 4, Level::MAIN_SHAPE);
+    Voxel v8(2, 3, 4, Level::MAIN_SHAPE);
+
+    ASSERT_FALSE(v7 == v8) << "==";
+    ASSERT_TRUE(v7 != v8) << "!=";
+    ASSERT_FALSE(v7 < v8) << "<";
+    ASSERT_TRUE(v8 < v7) << "<";
+}
+

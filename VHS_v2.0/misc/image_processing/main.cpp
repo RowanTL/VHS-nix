@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 St. Louis University
+ * Copyright 2020-22 St. Louis University
  * Contributed by: Hannah Schreiber
  *
  * This file is part of VHS.
@@ -47,9 +47,11 @@ void displayUsage()
 {
     std::cout << "Usage:\n";
     std::cout << "\n";
-    std::cout << "  ./imgproc down noise nberim inf_dp/in_fp out_dp/[out_fp] [trans]\n";
+    std::cout << "  ./imgproc down noise nberim"
+                 " inf_dp/in_fp out_dp/[out_fp] [trans]\n";
     std::cout << "\n";
-    std::cout << "Adding the argument --silent avoid outputs in the terminal.\n";
+    std::cout << "Adding the argument --silent avoid outputs in the terminal."
+                 "\n";
     std::cout << "\n";
     std::cout << "Lexis:\n";
     std::cout << "* down: Downsampling value.\n";
@@ -57,12 +59,16 @@ void displayUsage()
                  "  added to the gray level value.\n";
     std::cout << "* nberim: number of images to process.\n";
     std::cout << "* in_fp: name prefix of the input images, if existing. \n"
-                 "  E.g. \"flower_\" if the files are named \"flower_xxxx.png\", \n"
-                 "  where xxxx has to be the numbering of the images with 4 digits.\n";
+                 "  E.g. \"flower_\" if the files are named \"flower_xxxx.png\""
+                 ", \n"
+                 "  where xxxx has to be the numbering of the"
+                 " images with 4 digits.\n";
     std::cout << "* in_dp: directory path where the input images are stored.\n";
     std::cout << "* out_fp: name prefix for the output images.\n";
-    std::cout << "* out_dp: directory path where the output images should be stored.\n";
-    std::cout << "* trans: translates the grayscale level values by the given amount.\n";
+    std::cout << "* out_dp: directory path where the output images"
+                 " should be stored.\n";
+    std::cout << "* trans: translates the grayscale level values by"
+                 " the given amount.\n";
     std::cout << "\nfor more details, see Readme file\n";
     std::cout << "\n";
 }
@@ -163,10 +169,10 @@ void operator<<(std::string baseFilename, BaseImageStack &outputImages) {
                     image[p[1]][p[0]] = outputImages.getLevel(p[0], p[1], p[2]);
                 } else {
                     image[p[1]][p[0]] =
-                            std::min(
-                                outputImages.getLevel(p[0], p[1], p[2]) + _translation,
-                            255U
-                            );
+                        std::min(
+                        outputImages.getLevel(p[0], p[1], p[2]) + _translation,
+                        255U
+                        );
                 }
 
             }

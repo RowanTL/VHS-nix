@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(VHS VERSION 2.0
+project(VHS VERSION 2.1
 		DESCRIPTION "VHS -- Voxelized Homological Simplification"
         LANGUAGES CXX)
 
@@ -13,11 +13,15 @@ set(SRC_FILES
     src/util/ProcessedImageStack.cpp
     src/util/RawImageStack.cpp
 
-	src/simplifier/Simplifier.cpp
+    src/simplifier/Simplifier.cpp
+    src/simplifier/DistancePseudoVoidsCreator.cpp
 
     src/shape/Voxel.cpp
 
     src/persistence/BoundaryMatrix.cpp
+
+    src/shape/InflationShape.cpp
+    src/shape/IntensityShape.cpp
 )
 
 set(INCLUDE_FILES
@@ -31,14 +35,10 @@ set(INCLUDE_FILES
     src/util/FileIO.h
 
     src/simplifier/CandidateValidator.h
-	src/simplifier/BaseCandidateGenerator.h
-    src/simplifier/AdditiveH2CandidateGenerator.h
-    src/simplifier/AdditiveH1CandidateGenerator.h
-    src/simplifier/AdditiveH0CandidateGenerator.h
-	src/simplifier/SubstractiveH2CandidateGenerator.h
-	src/simplifier/SubstractiveH1CandidateGenerator.h
-	src/simplifier/SubstractiveH0CandidateGenerator.h
+    src/simplifier/AdditiveCandidateGenerator.h
+    src/simplifier/SubstractiveCandidateGenerator.h
 	src/simplifier/Simplifier.h
+    src/simplifier/DistancePseudoVoidsCreator.h
 
     src/shape/Voxel.h
 	src/shape/VoxelSkeletonIterators.h
@@ -51,13 +51,17 @@ set(INCLUDE_FILES
 	src/shape/ClosedRestrictedShapeCopy.h
 	src/shape/ClosedInvertedRestrictedShapeCopy.h
 	src/shape/AugmentedShape.h
+    src/shape/InvertedAugmentedShape.h
 	src/shape/ShapeOverlay.h
 	src/shape/ConnectedComponents.h
 	src/shape/Cell.h
-	src/shape/CellAdjacencies.h
+    src/shape/CellAdjacencies.h
 	src/shape/BaseSkeleton.h
 	src/shape/DualSkeleton.h
 	src/shape/PrimalSkeleton.h
+    src/shape/ShapeUtilities.h
+    src/shape/InflationShape.h
+    src/shape/IntensityShape.h
 
 	src/persistence/BoundaryMatrix.h
     src/persistence/PersistentHomology.h
@@ -70,13 +74,8 @@ set(TEMPLATE_CODE_FILES
 	src/util/UnionFindDelete.txx
     
     src/simplifier/CandidateValidator.txx
-	src/simplifier/BaseCandidateGenerator.txx
-    src/simplifier/AdditiveH2CandidateGenerator.txx
-    src/simplifier/AdditiveH1CandidateGenerator.txx
-    src/simplifier/AdditiveH0CandidateGenerator.txx
-	src/simplifier/SubstractiveH2CandidateGenerator.txx
-	src/simplifier/SubstractiveH1CandidateGenerator.txx
-	src/simplifier/SubstractiveH0CandidateGenerator.txx
+    src/simplifier/AdditiveCandidateGenerator.txx
+    src/simplifier/SubstractiveCandidateGenerator.txx
 
 	src/shape/VoxelSkeletonIterators.txx
 	src/shape/BaseShape.txx
@@ -87,12 +86,16 @@ set(TEMPLATE_CODE_FILES
 	src/shape/ClosedRestrictedShapeCopy.txx
 	src/shape/ClosedInvertedRestrictedShapeCopy.txx
 	src/shape/AugmentedShape.txx
+    src/shape/InvertedAugmentedShape.txx
 	src/shape/ShapeOverlay.txx
 	src/shape/ConnectedComponents.txx
 	src/shape/Cell.txx
 	src/shape/BaseSkeleton.txx
 	src/shape/DualSkeleton.txx
 	src/shape/PrimalSkeleton.txx
+    src/shape/ShapeUtilities.txx
+    src/shape/InflationShape.txx
+    src/shape/IntensityShape.txx
 
     src/persistence/PersistentHomology.txx
 )
@@ -114,23 +117,22 @@ set(OPT_FILES
 	misc/theoretical_best/TheoreticalOptimum.cpp
 )
 
-set(TEST_FILES 
+set(TEST_FILES
     test/test_all.cpp
 
-	test/Voxel_test.cpp
-	test/Shape_test.cpp
-	test/Restricted_Shapes_test.cpp
-	test/Augmented_Shape_test.cpp
-	test/Shape_Overlay_test.cpp
-	test/Connected_Components_test.cpp
-	test/Cell_test.cpp
-	test/Skeleton_test.cpp
-	test/Boundary_Matrix_test.cpp
-	test/Persistence_test.cpp
-	test/H2_Candidates_Generator_test.cpp
-	test/H1_Candidates_Generator_test.cpp
-	test/H0_Candidates_Generator_test.cpp
-	test/Validator_test.cpp
+    test/Voxel_test.cpp
+    test/Shape_test.cpp
+    test/Restricted_Shapes_test.cpp
+    test/Augmented_Shape_test.cpp
+    test/Shape_Overlay_test.cpp
+    test/Connected_Components_test.cpp
+    test/Cell_test.cpp
+    test/Skeleton_test.cpp
+    test/Boundary_Matrix_test.cpp
+    test/Persistence_test.cpp
+    test/Candidates_Generator_test.cpp
+    test/Validator_test.cpp
+    test/Pseudo_Voids_test.cpp
 )
 
 # Library setup
@@ -147,12 +149,12 @@ include_directories(
 # Setup test target
 find_package(GTest REQUIRED)
 
-add_executable(test 
+add_executable(test
                ${TEST_FILES}
                ${SRC_FILES}
                ${TEMPLATE_CODE_FILES}
 )
-target_include_directories(test PUBLIC test)
+target_include_directories(test PUBLIC test ${GTEST_INCLUDE_DIRS})
 target_link_libraries(test ${GTEST_BOTH_LIBRARIES} ${PNG_LIBRARIES})
 target_compile_features(test PRIVATE cxx_std_17)
 
