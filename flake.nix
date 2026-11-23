@@ -59,9 +59,9 @@
 
       apps = forAll (pkgs: rec {
         default = simplifier;
-        simplifier = { type = "app"; program = "${self.packages.${pkgs.system}.vhs}/bin/simplifier"; };
-        imgproc = { type = "app"; program = "${self.packages.${pkgs.system}.vhs}/bin/imgproc"; };
-        optsol = { type = "app"; program = "${self.packages.${pkgs.system}.vhs}/bin/optsol"; };
+        simplifier = { type = "app"; program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.vhs}/bin/simplifier"; };
+        imgproc = { type = "app"; program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.vhs}/bin/imgproc"; };
+        optsol = { type = "app"; program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.vhs}/bin/optsol"; };
       });
 
       devShells = forAll (pkgs: {
